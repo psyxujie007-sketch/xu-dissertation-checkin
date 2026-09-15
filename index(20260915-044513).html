@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>小许博士论文打卡站</title>
+<style>
+  :root{
+    --bg:#F7F4FA;
+    --panel:#FFFDFF;
+    --navy:#4B3C5C;
+    --blue:#6E5A86;
+    --teal:#89779A;
+    --mist:#EDE7F2;
+    --line:#DDD3E6;
+    --text:#3D3546;
+    --muted:#827789;
+    --soft:#F1ECF5;
+    --warm:#FBF8FC;
+    --danger:#9A5A72;
+    --shadow:0 8px 24px rgba(88,66,108,.09);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:"Noto Sans SC","Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+  header{
+    background:linear-gradient(135deg,#5F3F78,#8A67A3);
+    color:white;
+    padding:28px 24px 24px;
+    box-shadow:var(--shadow);
+  }
+  .headwrap{max-width:1200px;margin:0 auto}
+  h1{margin:0 0 8px;font-size:28px;letter-spacing:.5px}
+  .subtitle{opacity:.8;font-size:14px}
+  nav{
+    background:#F0E8F5;
+    border-bottom:1px solid #D8C9E3;
+    position:sticky;top:0;z-index:20;
+  }
+  .navwrap{max-width:1200px;margin:auto;display:flex;gap:6px;padding:8px 16px}
+  .tabbtn{
+    border:none;padding:10px 14px;border-radius:8px;
+    color:#5F506C;cursor:pointer;font-size:14px;font-weight:700;
+    transition:.2s ease;
+  }
+  .tabbtn:nth-child(1){background:#E9DFF1}
+  .tabbtn:nth-child(2){background:#F5E5EC}
+  .tabbtn:nth-child(3){background:#E8F1EC}
+  .tabbtn.active{
+    background:#6D4D84;
+    color:#fff;
+    box-shadow:0 4px 12px rgba(94,63,120,.18);
+  }
+  main{max-width:1200px;margin:24px auto;padding:0 16px 48px}
+  .page{display:none}.page.active{display:block}
+  .grid{display:grid;gap:16px}
+  .grid.cards{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:18px;box-shadow:var(--shadow);
+  }
+  .grid.cards .card:nth-child(1){background:#F1E6F7;border-color:#DFCBEA}
+  .grid.cards .card:nth-child(2){background:#FBE8EF;border-color:#F0CEDB}
+  .grid.cards .card:nth-child(3){background:#E9F1FA;border-color:#CFDFF1}
+  .grid.cards .card:nth-child(4){background:#E9F4EE;border-color:#D0E5D8}
+  .grid.cards .card:nth-child(1) .metric-value{color:#704C88}
+  .grid.cards .card:nth-child(2) .metric-value{color:#9B5873}
+  .grid.cards .card:nth-child(3) .metric-value{color:#4F7095}
+  .grid.cards .card:nth-child(4) .metric-value{color:#4F7D65}
+  .metric-label{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .metric-value{font-size:28px;font-weight:700;color:var(--navy)}
+  .metric-note{font-size:12px;color:var(--muted);margin-top:5px}
+  .section-title{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    margin:26px 0 12px;padding:10px 12px;border-radius:10px;
+    background:linear-gradient(90deg,#EEE4F4,#F7F1FA);
+    border-left:5px solid #8A67A3;
+  }
+  .section-title h2{font-size:18px;margin:0;color:#5B426D}
+  .btn{
+    border:1px solid #72558A;background:#72558A;color:white;
+    border-radius:9px;padding:9px 13px;cursor:pointer;font-size:13px;font-weight:600;
+  }
+  .btn.secondary{background:white;color:#72558A;border-color:#B8A2C8}
+  .btn.ghost{background:transparent;color:var(--muted);border-color:var(--line)}
+  .btn.danger{background:white;color:var(--danger);border-color:#d9bcbc}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px}
+  table{
+    width:100%;border-collapse:collapse;background:var(--panel);
+    border-radius:12px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--line);
+  }
+  th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:13px}
+  th{background:#E8DDF0;color:#563D68;font-weight:700}
+  tbody tr:nth-child(even){background:#FBF8FD}
+  tbody tr:hover{background:#F3ECF7}
+  .status{
+    display:inline-block;padding:4px 8px;border-radius:999px;background:var(--soft);
+    color:var(--blue);font-size:12px;font-weight:700;white-space:nowrap;
+  }
+  .empty{color:#9AA7AB}
+  .panel{
+    background:#FFFBFE;border:1px solid #DDD3E6;border-radius:14px;
+    padding:18px;box-shadow:var(--shadow);
+  }
+  form .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px}
+  input,select,textarea{
+    width:100%;border:1px solid #CBD6D9;border-radius:9px;padding:10px 11px;
+    font:inherit;color:var(--text);background:#fff;outline:none;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(93,126,131,.12)}
+  textarea{min-height:92px;resize:vertical}
+  .span2{grid-column:span 2}
+  .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+  .hint{font-size:12px;color:var(--muted);line-height:1.6}
+  .section-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .section-card{
+    background:var(--section-bg,#fff);border:1px solid var(--section-border,var(--line));border-radius:12px;padding:15px;
+    position:relative;box-shadow:0 4px 12px rgba(60,64,67,.05);
+    border-left:6px solid var(--section-accent,#8A969B);
+  }
+  .section-card h3{color:var(--section-accent,#27333A)!important}
+  .section-card .status{
+    background:var(--section-chip,#F0EEEA);
+    color:var(--section-accent,#596B73);
+  }
+  .section-0{--section-bg:#FFF4F6;--section-border:#F2D8DE;--section-accent:#A9576B;--section-chip:#F8E6EA}
+  .section-1{--section-bg:#FFF7F0;--section-border:#F0DDCC;--section-accent:#B36B3F;--section-chip:#F7EADF}
+  .section-2{--section-bg:#FFFBEF;--section-border:#EDE3BF;--section-accent:#9A7C2F;--section-chip:#F5EECF}
+  .section-3{--section-bg:#F7F9ED;--section-border:#DDE5BF;--section-accent:#76883B;--section-chip:#EAF0D2}
+  .section-4{--section-bg:#F1F8F2;--section-border:#CFE4D4;--section-accent:#4E8863;--section-chip:#DBEEE0}
+  .section-5{--section-bg:#EFF9F8;--section-border:#CBE5E1;--section-accent:#3E817B;--section-chip:#D9EEEB}
+  .section-6{--section-bg:#F0F7FB;--section-border:#CEE1EC;--section-accent:#4D7FA0;--section-chip:#DBEAF3}
+  .section-7{--section-bg:#F2F4FB;--section-border:#D4D9ED;--section-accent:#626FA3;--section-chip:#E1E5F3}
+  .section-8{--section-bg:#F7F2FB;--section-border:#E2D4EE;--section-accent:#7C5E99;--section-chip:#EDE2F5}
+  .section-9{--section-bg:#FBF2F7;--section-border:#EAD2DF;--section-accent:#9B5C7B;--section-chip:#F3E0E9}
+  .section-card h3{margin:0 0 8px;font-size:16px}
+  .section-meta{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .section-text{font-size:13px;line-height:1.6;color:#42545A;white-space:pre-wrap}
+  .smallbtn{padding:5px 8px;font-size:12px}
+  .modal{
+    position:fixed;inset:0;background:rgba(17,38,45,.42);display:none;align-items:center;justify-content:center;
+    z-index:50;padding:18px;
+  }
+  .modal.show{display:flex}
+  .modalbox{
+    width:min(720px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:16px;
+    padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.22)
+  }
+  .modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .modalhead h3{margin:0;color:var(--navy)}
+  .close{border:none;background:transparent;font-size:22px;cursor:pointer;color:var(--muted)}
+  .trend{
+    display:flex;align-items:flex-end;gap:7px;height:150px;padding:12px;border:1px solid var(--line);
+    border-radius:12px;background:#fff
+  }
+  .barwrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+  .bar{width:100%;max-width:28px;background:#6E8F94;border-radius:5px 5px 0 0;min-height:3px}
+  .barlabel{font-size:10px;color:var(--muted);margin-top:5px;white-space:nowrap}
+  .barval{font-size:10px;color:var(--blue);margin-bottom:3px}
+  .footer-note{margin-top:22px;font-size:12px;color:#81718C;text-align:center}
+  @media(max-width:850px){
+    .grid.cards{grid-template-columns:repeat(2,1fr)}
+    .section-cards{grid-template-columns:1fr}
+  }
+  @media(max-width:620px){
+    .grid.cards{grid-template-columns:1fr}
+    form .form-grid{grid-template-columns:1fr}
+    .span2{grid-column:span 1}
+    table{display:block;overflow:auto;white-space:nowrap}
+    h1{font-size:23px}
+    .navwrap{overflow:auto}
+    .tabbtn{white-space:nowrap}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="headwrap">
+    <h1>小许博士论文打卡站</h1>
+    <div class="subtitle">Xu’s Dissertation Check-in · 路远，终达</div>
+  </div>
+</header>
+
+<nav>
+  <div class="navwrap">
+    <button class="tabbtn active" data-tab="dashboard">总览</button>
+    <button class="tabbtn" data-tab="daily">每日记录</button>
+    <button class="tabbtn" data-tab="backup">备份与恢复</button>
+  </div>
+</nav>
+
+<main>
+  <section id="dashboard" class="page active">
+    <div class="grid cards">
+      <div class="card">
+        <div class="metric-label">全文当前字数</div>
+        <div class="metric-value" id="totalWords">0</div>
+        <div class="metric-note">来自 10 个论文板块的当前字数</div>
+      </div>
+      <div class="card">
+        <div class="metric-label">今日净增字数</div>
+        <div class="metric-value" id="todayWords">0</div>
+        <div class="metric-note">按今日每日记录自动汇总</div>
+      </div>
+      <div class="card">
+        <div class="metric-label">近 7 天净增字数</div>
+        <div class="metric-value" id="weekWords">0</div>
+        <div class="metric-note">仅作写作节奏参考</div>
+      </div>
+      <div class="card">
+        <div class="metric-label">最近推进板块</div>
+        <div class="metric-value" style="font-size:20px" id="latestSection">—</div>
+        <div class="metric-note" id="latestDate">尚无每日记录</div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <h2>论文板块</h2>
+      <button class="btn" onclick="openSectionModal()">编辑板块状态</button>
+    </div>
+    <div class="section-cards" id="sectionCards"></div>
+
+    <div class="section-title"><h2>最近 7 天净增字数</h2></div>
+    <div class="trend" id="trend"></div>
+
+    <div class="section-title"><h2>最近记录</h2></div>
+    <div style="overflow:auto">
+      <table>
+        <thead>
+          <tr><th>日期</th><th>板块</th><th>净增字数</th><th>今天具体完成了什么</th><th>明日任务</th></tr>
+        </thead>
+        <tbody id="recentRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="daily" class="page">
+    <div class="section-title"><h2>新增每日记录</h2></div>
+    <div class="panel">
+      <form id="dailyForm">
+        <div class="form-grid">
+          <div><label>日期</label><input type="date" id="dDate" required></div>
+          <div><label>今日板块</label><select id="dSection" required></select></div>
+          <div><label>今日开始字数</label><input type="number" min="0" id="dStart" placeholder="例如 12350"></div>
+          <div><label>今日结束字数</label><input type="number" min="0" id="dEnd" placeholder="例如 13180"></div>
+          <div class="span2"><label>今天具体完成了什么</label><textarea id="dDone" placeholder="例如：完成研究一结果 3.2，修改表2，补充两篇文献"></textarea></div>
+          <div class="span2"><label>遇到的问题</label><textarea id="dProblem" placeholder="例如：讨论部分逻辑仍需调整"></textarea></div>
+          <div class="span2"><label>明日任务</label><textarea id="dNext" placeholder="例如：完成研究一讨论初稿"></textarea></div>
+        </div>
+        <div class="form-actions"><button class="btn" type="submit">保存今日记录</button></div>
+      </form>
+    </div>
+
+    <div class="section-title">
+      <h2>历史记录</h2>
+      <div class="toolbar">
+        <button class="btn secondary" onclick="exportDailyCSV()">导出 CSV</button>
+      </div>
+    </div>
+    <div style="overflow:auto">
+      <table>
+        <thead>
+          <tr><th>日期</th><th>板块</th><th>开始字数</th><th>结束字数</th><th>净增</th><th>完成内容</th><th>问题</th><th>明日任务</th><th></th></tr>
+        </thead>
+        <tbody id="dailyRows"></tbody>
+      </table>
+    </div>
+  </section>
+<section id="backup" class="page">
+    <div class="section-title"><h2>备份与恢复</h2></div>
+    <div class="panel">
+      <p class="hint">
+        本网页的数据默认保存在当前浏览器的本地存储中。建议定期导出备份文件。
+        如果换电脑、换浏览器或清理浏览器数据，可使用备份文件恢复。
+      </p>
+      <div class="toolbar" style="margin-top:14px">
+        <button class="btn" onclick="exportBackup()">导出完整备份（JSON）</button>
+        <label class="btn secondary" style="display:inline-block;margin:0">
+          导入备份
+          <input type="file" accept=".json,application/json" id="importFile" style="display:none">
+        </label>
+        <button class="btn danger" onclick="clearAllData()">清空所有数据</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer-note">建议每周导出一次备份 · 数据仅保存在你的浏览器中</div>
+</main>
+
+<div class="modal" id="sectionModal">
+  <div class="modalbox">
+    <div class="modalhead">
+      <h3>编辑论文板块状态</h3>
+      <button class="close" onclick="closeSectionModal()">×</button>
+    </div>
+    <form id="sectionForm">
+      <div class="form-grid">
+        <div><label>论文板块</label><select id="sName"></select></div>
+        <div><label>当前字数</label><input type="number" min="0" id="sWords"></div>
+        <div><label>当前状态</label>
+          <select id="sStatus">
+            <option>未开始</option><option>进行中</option><option>初稿完成</option>
+            <option>修改中</option><option>待反馈</option><option>已完成</option>
+          </select>
+        </div>
+        <div></div>
+        <div class="span2"><label>当前完成情况（文字记录）</label><textarea id="sDetail" placeholder="例如：结果部分完成，讨论尚未写"></textarea></div>
+        <div class="span2"><label>下一步</label><textarea id="sNext" placeholder="例如：补充理论依据并完成讨论初稿"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn ghost" onclick="closeSectionModal()">取消</button>
+        <button type="submit" class="btn">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const SECTION_NAMES = ["摘要","引言","文献综述","问题提出","研究一","研究二","研究三","研究四","总讨论","结论"];
+const STORAGE_KEY = "dissertation_progress_workspace_v1";
+
+function todayISO(){
+  const d=new Date(); const off=d.getTimezoneOffset(); const local=new Date(d.getTime()-off*60000);
+  return local.toISOString().slice(0,10);
+}
+function defaultData(){
+  return {
+    sections: SECTION_NAMES.map(name=>({name,words:0,detail:"",status:"未开始",next:""})),
+    daily:[],
+    milestones:[]
+  };
+}
+function loadData(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultData();
+    const parsed=JSON.parse(raw);
+    if(!parsed.sections || !parsed.daily || !parsed.milestones) return defaultData();
+    SECTION_NAMES.forEach(n=>{
+      if(!parsed.sections.find(s=>s.name===n)) parsed.sections.push({name:n,words:0,detail:"",status:"未开始",next:""});
+    });
+    return parsed;
+  }catch(e){ return defaultData(); }
+}
+let data=loadData();
+function save(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(data)); renderAll(); }
+function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c])); }
+function num(n){ return Number(n||0).toLocaleString("zh-CN"); }
+
+function fillSectionSelects(){
+  ["dSection","sName"].forEach(id=>{
+    const el=document.getElementById(id);
+    el.innerHTML=SECTION_NAMES.map(x=>`<option value="${x}">${x}</option>`).join("");
+  });
+}
+function statusBadge(s){ return `<span class="status">${esc(s)}</span>`; }
+
+function renderDashboard(){
+  const total=data.sections.reduce((a,b)=>a+Number(b.words||0),0);
+  document.getElementById("totalWords").textContent=num(total);
+
+  const today=todayISO();
+  const todaySum=data.daily.filter(r=>r.date===today).reduce((a,b)=>a+Number(b.net||0),0);
+  document.getElementById("todayWords").textContent=(todaySum>0?"+":"")+num(todaySum);
+
+  const now=new Date(today+"T00:00:00");
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-6);
+  const weekSum=data.daily.filter(r=>{
+    const d=new Date(r.date+"T00:00:00");
+    return d>=weekStart && d<=now;
+  }).reduce((a,b)=>a+Number(b.net||0),0);
+  document.getElementById("weekWords").textContent=(weekSum>0?"+":"")+num(weekSum);
+
+  const sorted=[...data.daily].sort((a,b)=>b.date.localeCompare(a.date) || b.id-a.id);
+  if(sorted.length){
+    document.getElementById("latestSection").textContent=sorted[0].section;
+    document.getElementById("latestDate").textContent=sorted[0].date+" 最近记录";
+  }else{
+    document.getElementById("latestSection").textContent="—";
+    document.getElementById("latestDate").textContent="尚无每日记录";
+  }
+
+  document.getElementById("sectionCards").innerHTML=data.sections.map((s,i)=>`
+    <div class="section-card section-${i}">
+      <div class="section-meta">
+        <h3>${esc(s.name)}</h3>
+        ${statusBadge(s.status)}
+      </div>
+      <div class="hint" style="margin-bottom:6px">当前字数：<strong style="color:var(--navy)">${num(s.words)}</strong></div>
+      <div class="section-text"><strong>当前完成情况：</strong>${s.detail?esc(s.detail):'<span class="empty">尚未记录</span>'}</div>
+      <div class="section-text" style="margin-top:7px"><strong>下一步：</strong>${s.next?esc(s.next):'<span class="empty">尚未记录</span>'}</div>
+      <div style="margin-top:10px"><button class="btn secondary smallbtn" onclick="editSection('${esc(s.name)}')">编辑</button></div>
+    </div>`).join("");
+
+  document.getElementById("recentRows").innerHTML=sorted.slice(0,8).map(r=>`
+    <tr><td>${esc(r.date)}</td><td>${esc(r.section)}</td><td>${r.net>0?"+":""}${num(r.net)}</td>
+    <td>${esc(r.done)||'<span class="empty">—</span>'}</td><td>${esc(r.next)||'<span class="empty">—</span>'}</td></tr>`).join("") || `<tr><td colspan="5" class="empty">还没有记录。今天写完后，记一行就够了。</td></tr>`;
+
+  renderTrend();
+}
+function renderTrend(){
+  const wrap=document.getElementById("trend");
+  const dates=[];
+  const now=new Date(todayISO()+"T00:00:00");
+  for(let i=6;i>=0;i--){
+    const d=new Date(now);d.setDate(now.getDate()-i);
+    const iso=d.toISOString().slice(0,10);
+    const sum=data.daily.filter(r=>r.date===iso).reduce((a,b)=>a+Number(b.net||0),0);
+    dates.push({iso,sum});
+  }
+  const max=Math.max(1,...dates.map(x=>Math.abs(x.sum)));
+  wrap.innerHTML=dates.map(x=>{
+    const h=Math.max(3,Math.round(Math.abs(x.sum)/max*95));
+    return `<div class="barwrap">
+      <div class="barval">${x.sum?((x.sum>0?"+":"")+num(x.sum)):"0"}</div>
+      <div class="bar" style="height:${h}px;background:${["#A9576B","#B36B3F","#9A7C2F","#4E8863","#3E817B","#4D7FA0","#7C5E99"][dates.indexOf(x)]};${x.sum<0?'opacity:.45':''}"></div>
+      <div class="barlabel">${x.iso.slice(5).replace("-","/")}</div>
+    </div>`;
+  }).join("");
+}
+function renderDaily(){
+  const rows=[...data.daily].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+  document.getElementById("dailyRows").innerHTML=rows.map(r=>`
+  <tr>
+    <td>${esc(r.date)}</td><td>${esc(r.section)}</td><td>${num(r.start)}</td><td>${num(r.end)}</td>
+    <td>${r.net>0?"+":""}${num(r.net)}</td><td>${esc(r.done)||"—"}</td><td>${esc(r.problem)||"—"}</td><td>${esc(r.next)||"—"}</td>
+    <td><button class="btn danger smallbtn" onclick="deleteDaily(${r.id})">删除</button></td>
+  </tr>`).join("") || `<tr><td colspan="9" class="empty">暂无每日记录</td></tr>`;
+}
+
+function renderAll(){ renderDashboard(); renderDaily(); }
+
+document.querySelectorAll(".tabbtn").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll(".tabbtn").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  btn.classList.add("active"); document.getElementById(btn.dataset.tab).classList.add("active");
+}));
+
+document.getElementById("dailyForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const start=Number(document.getElementById("dStart").value||0);
+  const end=Number(document.getElementById("dEnd").value||0);
+  const hasBoth=document.getElementById("dStart").value!=="" && document.getElementById("dEnd").value!=="";
+  data.daily.push({
+    id:Date.now(),
+    date:document.getElementById("dDate").value,
+    section:document.getElementById("dSection").value,
+    start, end, net:hasBoth?end-start:0,
+    done:document.getElementById("dDone").value.trim(),
+    problem:document.getElementById("dProblem").value.trim(),
+    next:document.getElementById("dNext").value.trim()
+  });
+  e.target.reset(); document.getElementById("dDate").value=todayISO(); save();
+});
+
+function deleteDaily(id){
+  if(confirm("确定删除这条每日记录吗？")){ data.daily=data.daily.filter(x=>x.id!==id); save(); }
+}
+
+
+function openSectionModal(){
+  document.getElementById("sectionModal").classList.add("show");
+  loadSectionForm(document.getElementById("sName").value||SECTION_NAMES[0]);
+}
+function closeSectionModal(){ document.getElementById("sectionModal").classList.remove("show"); }
+function editSection(name){
+  document.getElementById("sName").value=name; openSectionModal(); loadSectionForm(name);
+}
+function loadSectionForm(name){
+  const s=data.sections.find(x=>x.name===name) || data.sections[0];
+  document.getElementById("sName").value=s.name;
+  document.getElementById("sWords").value=s.words||0;
+  document.getElementById("sStatus").value=s.status||"未开始";
+  document.getElementById("sDetail").value=s.detail||"";
+  document.getElementById("sNext").value=s.next||"";
+}
+document.getElementById("sName").addEventListener("change",e=>loadSectionForm(e.target.value));
+document.getElementById("sectionForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const name=document.getElementById("sName").value;
+  const s=data.sections.find(x=>x.name===name);
+  s.words=Number(document.getElementById("sWords").value||0);
+  s.status=document.getElementById("sStatus").value;
+  s.detail=document.getElementById("sDetail").value.trim();
+  s.next=document.getElementById("sNext").value.trim();
+  save(); closeSectionModal();
+});
+document.getElementById("sectionModal").addEventListener("click",e=>{ if(e.target.id==="sectionModal") closeSectionModal(); });
+
+function downloadText(filename,text,type){
+  const blob=new Blob([text],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+function csvCell(v){ return `"${String(v??"").replace(/"/g,'""')}"`; }
+function exportDailyCSV(){
+  const header=["日期","今日板块","今日开始字数","今日结束字数","净增字数","今天具体完成了什么","遇到的问题","明日任务"];
+  const rows=[header,...[...data.daily].sort((a,b)=>a.date.localeCompare(b.date)).map(r=>[r.date,r.section,r.start,r.end,r.net,r.done,r.problem,r.next])];
+  const csv="\uFEFF"+rows.map(row=>row.map(csvCell).join(",")).join("\r\n");
+  downloadText("博士论文每日记录.csv",csv,"text/csv;charset=utf-8");
+}
+function exportBackup(){
+  downloadText("博士论文进度备份_"+todayISO()+".json",JSON.stringify(data,null,2),"application/json");
+}
+document.getElementById("importFile").addEventListener("change",e=>{
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const obj=JSON.parse(reader.result);
+      if(!obj.sections || !obj.daily) throw new Error("格式不正确");
+      if(!obj.milestones) obj.milestones=[];
+      if(confirm("导入备份会覆盖当前网页中的数据，确定继续吗？")){
+        data=obj; save(); alert("备份已恢复。");
+      }
+    }catch(err){ alert("无法读取该备份文件。"); }
+    e.target.value="";
+  };
+  reader.readAsText(file,"utf-8");
+});
+function clearAllData(){
+  if(confirm("这会清空所有板块状态和每日记录。确定继续吗？")){
+    if(confirm("再次确认：清空后只能通过之前导出的备份恢复。")){
+      data=defaultData(); save();
+    }
+  }
+}
+
+fillSectionSelects();
+document.getElementById("dDate").value=todayISO();
+renderAll();
+</script>
+</body>
+</html>
