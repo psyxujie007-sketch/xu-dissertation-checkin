@@ -287,6 +287,48 @@
     .victory-word{font-size:48px}
   }
 
+
+  /* ===== 每日计划 / 历程记录 ===== */
+  .tabbtn:nth-child(4){background:#F4EBDD}
+  .today-plan-card{
+    background:linear-gradient(135deg,#F1E6F7 0%,#F8EEF8 48%,#EEF3FB 100%);
+    border:1px solid #DCCBE8;border-radius:16px;padding:18px 20px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .today-plan-card::after{
+    content:"";position:absolute;width:180px;height:180px;border-radius:50%;
+    right:-70px;top:-85px;background:rgba(145,105,175,.10);
+  }
+  .plan-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;position:relative;z-index:1}
+  .plan-date{font-size:12px;color:#85728F;font-weight:700;letter-spacing:.03em}
+  .plan-focus{font-size:18px;font-weight:800;color:#5B426D;margin-top:5px}
+  .plan-task{
+    margin-top:12px;white-space:pre-wrap;line-height:1.8;font-size:14px;
+    color:#473D4E;position:relative;z-index:1;
+  }
+  .plan-empty{color:#918698;font-size:13px;line-height:1.7}
+  .plan-status{
+    display:inline-block;padding:5px 9px;border-radius:999px;
+    background:#E7DCF0;color:#6D4D84;font-size:12px;font-weight:800;white-space:nowrap;
+  }
+  .journey-table td{white-space:normal;min-width:220px;line-height:1.7}
+  .journey-table td:first-child{min-width:145px;width:145px;font-weight:800;color:#5B426D}
+  .journey-item{
+    padding:9px 10px;border-radius:9px;background:#F8F4FA;border-left:3px solid #A985BC;
+    margin-bottom:8px;
+  }
+  .journey-item:last-child{margin-bottom:0}
+  .journey-section{font-weight:800;color:#665074;margin-bottom:3px}
+  .journey-meta{font-size:12px;color:#8B7E92;margin-bottom:3px}
+  .journey-text{font-size:13px;color:#4C424F}
+  .plan-preview{
+    margin-top:16px;padding:14px;border-radius:12px;background:#F8F4FA;border:1px solid #E1D5E8;
+  }
+  @media(max-width:700px){
+    .plan-top{flex-direction:column}
+    .journey-table td:first-child{min-width:110px;width:110px}
+  }
+
 </style>
 </head>
 <body class="locked">
@@ -326,10 +368,12 @@
   </div>
 </header>
 
+
 <nav>
   <div class="navwrap">
     <button class="tabbtn active" data-tab="dashboard">总览</button>
-    <button class="tabbtn" data-tab="daily">每日记录</button>
+    <button class="tabbtn" data-tab="plan">每日计划</button>
+    <button class="tabbtn" data-tab="journey">历程记录</button>
     <button class="tabbtn" data-tab="backup">备份与恢复</button>
     <button class="lock-btn" onclick="lockSite()">🔒 锁定</button>
   </div>
@@ -346,19 +390,25 @@
       <div class="card">
         <div class="metric-label">今日净增字数</div>
         <div class="metric-value" id="todayWords">0</div>
-        <div class="metric-note">按今日每日记录自动汇总</div>
+        <div class="metric-note">按当日论文推进自动汇总</div>
       </div>
       <div class="card">
         <div class="metric-label">近 7 天净增字数</div>
         <div class="metric-value" id="weekWords">0</div>
-        <div class="metric-note">仅作写作节奏参考</div>
+        <div class="metric-note">沿用原有写作节奏统计</div>
       </div>
       <div class="card">
         <div class="metric-label">最近推进板块</div>
         <div class="metric-value" style="font-size:20px" id="latestSection">—</div>
-        <div class="metric-note" id="latestDate">尚无每日记录</div>
+        <div class="metric-note" id="latestDate">尚无推进记录</div>
       </div>
     </div>
+
+    <div class="section-title">
+      <h2>今日计划</h2>
+      <button class="btn secondary" onclick="goToPlan()">编辑今日计划</button>
+    </div>
+    <div id="todayPlanCard" class="today-plan-card"></div>
 
     <div class="section-title">
       <h2>论文板块</h2>
@@ -368,55 +418,71 @@
 
     <div class="section-title"><h2>最近 7 天净增字数</h2></div>
     <div class="trend" id="trend"></div>
-
-    <div class="section-title"><h2>最近记录</h2></div>
-    <div style="overflow:auto">
-      <table>
-        <thead>
-          <tr><th>日期</th><th>板块</th><th>净增字数</th><th>今天具体完成了什么</th><th>明日任务</th></tr>
-        </thead>
-        <tbody id="recentRows"></tbody>
-      </table>
-    </div>
   </section>
 
-  <section id="daily" class="page">
-    <div class="section-title"><h2>新增每日记录</h2></div>
+  <section id="plan" class="page">
+    <div class="section-title"><h2>每日计划</h2></div>
     <div class="panel">
-      <form id="dailyForm">
+      <form id="planForm">
         <div class="form-grid">
-          <div><label>日期</label><input type="date" id="dDate" required></div>
-          <div><label>今日板块</label><select id="dSection" required></select></div>
-          <div><label>今日开始字数</label><input type="number" min="0" id="dStart" placeholder="例如 12350"></div>
-          <div><label>今日结束字数</label><input type="number" min="0" id="dEnd" placeholder="例如 13180"></div>
-          <div class="span2"><label>今天具体完成了什么</label><textarea id="dDone" placeholder="例如：完成研究一结果 3.2，修改表2，补充两篇文献"></textarea></div>
-          <div class="span2"><label>遇到的问题</label><textarea id="dProblem" placeholder="例如：讨论部分逻辑仍需调整"></textarea></div>
-          <div class="span2"><label>明日任务</label><textarea id="dNext" placeholder="例如：完成研究一讨论初稿"></textarea></div>
+          <div>
+            <label>日期</label>
+            <input type="date" id="pDate" required>
+          </div>
+          <div>
+            <label>今日重点板块</label>
+            <select id="pSection" required></select>
+          </div>
+          <div class="span2">
+            <label>今天需要完成什么</label>
+            <textarea id="pTasks" required placeholder="例如：&#10;1. 完成研究四结果 3.2&#10;2. 整理图 4 和表 6&#10;3. 补充两篇核心文献"></textarea>
+          </div>
+          <div>
+            <label>完成状态</label>
+            <select id="pStatus">
+              <option>未开始</option>
+              <option>进行中</option>
+              <option>部分完成</option>
+              <option>已完成</option>
+            </select>
+          </div>
+          <div></div>
         </div>
-        <div class="form-actions"><button class="btn" type="submit">保存今日记录</button></div>
+        <div class="form-actions">
+          <button class="btn danger" type="button" onclick="deletePlanForSelectedDate()">删除该日计划</button>
+          <button class="btn" type="submit">保存每日计划</button>
+        </div>
       </form>
-    </div>
-
-    <div class="section-title">
-      <h2>历史记录</h2>
-      <div class="toolbar">
-        <button class="btn secondary" onclick="exportDailyCSV()">导出 CSV</button>
+      <div class="plan-preview">
+        <div class="hint">提示：选择已有日期时，会自动载入当天计划；保存后会同步显示在“总览”的论文板块上方，并进入“历程记录”。</div>
       </div>
     </div>
+  </section>
+
+  <section id="journey" class="page">
+    <div class="section-title">
+      <h2>历程记录</h2>
+      <button class="btn secondary" onclick="exportJourneyCSV()">导出历程 CSV</button>
+    </div>
     <div style="overflow:auto">
-      <table>
+      <table class="journey-table">
         <thead>
-          <tr><th>日期</th><th>板块</th><th>开始字数</th><th>结束字数</th><th>净增</th><th>完成内容</th><th>问题</th><th>明日任务</th><th></th></tr>
+          <tr>
+            <th>日期</th>
+            <th>每日计划</th>
+            <th>论文推进记录</th>
+          </tr>
         </thead>
-        <tbody id="dailyRows"></tbody>
+        <tbody id="journeyRows"></tbody>
       </table>
     </div>
   </section>
-<section id="backup" class="page">
+
+  <section id="backup" class="page">
     <div class="section-title"><h2>备份与恢复</h2></div>
     <div class="panel">
       <p class="hint">
-        本网页的数据默认保存在当前浏览器的本地存储中。建议定期导出备份文件。
+        数据保存在当前浏览器中。建议定期导出 JSON 备份。
         如果换电脑、换浏览器或清理浏览器数据，可使用备份文件恢复。
       </p>
       <div class="toolbar" style="margin-top:14px">
@@ -430,8 +496,9 @@
     </div>
   </section>
 
-  <div class="footer-note">建议每周导出一次备份 · 数据仅保存在你的浏览器中</div>
+  <div class="footer-note">总览看今天与全局 · 每日计划负责安排 · 历程记录负责回顾</div>
 </main>
+
 
 <div class="modal" id="sectionModal">
   <div class="modalbox">
@@ -461,19 +528,23 @@
   </div>
 </div>
 
+
 <script>
 const SECTION_NAMES = ["摘要","引言","文献综述","问题提出","研究一","研究二","研究三","研究四","总讨论","结论"];
 const STORAGE_KEY = "dissertation_progress_workspace_v1";
 
 function todayISO(){
-  const d=new Date(); const off=d.getTimezoneOffset(); const local=new Date(d.getTime()-off*60000);
-  return local.toISOString().slice(0,10);
+  const d=new Date();
+  const off=d.getTimezoneOffset();
+  return new Date(d.getTime()-off*60000).toISOString().slice(0,10);
 }
 function defaultData(){
   return {
     sections: SECTION_NAMES.map(name=>({name,words:0,detail:"",status:"未开始",next:""})),
     daily:[],
-    milestones:[]
+    milestones:[],
+    plans:[],
+    journey:[]
   };
 }
 function loadData(){
@@ -481,50 +552,104 @@ function loadData(){
     const raw=localStorage.getItem(STORAGE_KEY);
     if(!raw) return defaultData();
     const parsed=JSON.parse(raw);
-    if(!parsed.sections || !parsed.daily || !parsed.milestones) return defaultData();
+    if(!parsed.sections) return defaultData();
+    if(!Array.isArray(parsed.daily)) parsed.daily=[];
+    if(!Array.isArray(parsed.milestones)) parsed.milestones=[];
+    if(!Array.isArray(parsed.plans)) parsed.plans=[];
+    if(!Array.isArray(parsed.journey)) parsed.journey=[];
     SECTION_NAMES.forEach(n=>{
-      if(!parsed.sections.find(s=>s.name===n)) parsed.sections.push({name:n,words:0,detail:"",status:"未开始",next:""});
+      if(!parsed.sections.find(s=>s.name===n)){
+        parsed.sections.push({name:n,words:0,detail:"",status:"未开始",next:""});
+      }
     });
+    parsed.sections=SECTION_NAMES.map(n=>parsed.sections.find(s=>s.name===n));
     return parsed;
-  }catch(e){ return defaultData(); }
+  }catch(e){
+    return defaultData();
+  }
 }
 let data=loadData();
-function save(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(data)); renderAll(); }
-function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c])); }
-function num(n){ return Number(n||0).toLocaleString("zh-CN"); }
 
-function fillSectionSelects(){
-  ["dSection","sName"].forEach(id=>{
-    const el=document.getElementById(id);
-    el.innerHTML=SECTION_NAMES.map(x=>`<option value="${x}">${x}</option>`).join("");
-  });
+function save(){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  renderAll();
+}
+function esc(s){
+  return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+}
+function num(n){ return Number(n||0).toLocaleString("zh-CN"); }
+function signedNum(n){
+  const x=Number(n||0);
+  return (x>0?"+":"")+num(x);
+}
+function formatDate(iso){
+  if(!iso) return "—";
+  const d=new Date(iso+"T00:00:00");
+  const week=["周日","周一","周二","周三","周四","周五","周六"][d.getDay()];
+  return `${iso}<br><span class="hint">${week}</span>`;
 }
 function statusBadge(s){ return `<span class="status">${esc(s)}</span>`; }
+
+function fillSectionSelects(){
+  ["pSection","sName"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=SECTION_NAMES.map(x=>`<option value="${x}">${x}</option>`).join("");
+  });
+}
+function getProgressRecords(){
+  const legacy=(data.daily||[]).map(r=>({
+    id:Number(r.id||0),
+    date:r.date,
+    section:r.section||"未指定",
+    net:Number(r.net||0),
+    start:Number(r.start||0),
+    end:Number(r.end||0),
+    text:[
+      r.done ? `完成：${r.done}` : "",
+      r.problem ? `问题：${r.problem}` : "",
+      r.next ? `下一步：${r.next}` : ""
+    ].filter(Boolean).join("；") || (Number(r.net||0)!==0 ? `字数变化 ${signedNum(r.net)}` : "历史记录")
+  }));
+  const auto=(data.journey||[]).map(r=>({
+    id:Number(r.id||0),
+    date:r.date,
+    section:r.section||"未指定",
+    net:Number(r.net||0),
+    start:Number(r.start||0),
+    end:Number(r.end||0),
+    text:r.text||"论文板块已更新"
+  }));
+  return [...legacy,...auto];
+}
 
 function renderDashboard(){
   const total=data.sections.reduce((a,b)=>a+Number(b.words||0),0);
   document.getElementById("totalWords").textContent=num(total);
 
+  const records=getProgressRecords();
   const today=todayISO();
-  const todaySum=data.daily.filter(r=>r.date===today).reduce((a,b)=>a+Number(b.net||0),0);
-  document.getElementById("todayWords").textContent=(todaySum>0?"+":"")+num(todaySum);
+  const todaySum=records.filter(r=>r.date===today).reduce((a,b)=>a+Number(b.net||0),0);
+  document.getElementById("todayWords").textContent=signedNum(todaySum);
 
   const now=new Date(today+"T00:00:00");
-  const weekStart=new Date(now); weekStart.setDate(now.getDate()-6);
-  const weekSum=data.daily.filter(r=>{
+  const weekStart=new Date(now);
+  weekStart.setDate(now.getDate()-6);
+  const weekSum=records.filter(r=>{
     const d=new Date(r.date+"T00:00:00");
     return d>=weekStart && d<=now;
   }).reduce((a,b)=>a+Number(b.net||0),0);
-  document.getElementById("weekWords").textContent=(weekSum>0?"+":"")+num(weekSum);
+  document.getElementById("weekWords").textContent=signedNum(weekSum);
 
-  const sorted=[...data.daily].sort((a,b)=>b.date.localeCompare(a.date) || b.id-a.id);
+  const sorted=[...records].sort((a,b)=>b.date.localeCompare(a.date)||Number(b.id)-Number(a.id));
   if(sorted.length){
     document.getElementById("latestSection").textContent=sorted[0].section;
-    document.getElementById("latestDate").textContent=sorted[0].date+" 最近记录";
+    document.getElementById("latestDate").textContent=sorted[0].date+" 最近推进";
   }else{
     document.getElementById("latestSection").textContent="—";
-    document.getElementById("latestDate").textContent="尚无每日记录";
+    document.getElementById("latestDate").textContent="尚无推进记录";
   }
+
+  renderTodayPlan();
 
   document.getElementById("sectionCards").innerHTML=data.sections.map((s,i)=>`
     <div class="section-card section-${i}">
@@ -538,71 +663,168 @@ function renderDashboard(){
       <div style="margin-top:10px"><button class="btn secondary smallbtn" onclick="editSection('${esc(s.name)}')">编辑</button></div>
     </div>`).join("");
 
-  document.getElementById("recentRows").innerHTML=sorted.slice(0,8).map(r=>`
-    <tr><td>${esc(r.date)}</td><td>${esc(r.section)}</td><td>${r.net>0?"+":""}${num(r.net)}</td>
-    <td>${esc(r.done)||'<span class="empty">—</span>'}</td><td>${esc(r.next)||'<span class="empty">—</span>'}</td></tr>`).join("") || `<tr><td colspan="5" class="empty">还没有记录。今天写完后，记一行就够了。</td></tr>`;
-
   renderTrend();
 }
+
+function renderTodayPlan(){
+  const wrap=document.getElementById("todayPlanCard");
+  const today=todayISO();
+  const plan=(data.plans||[]).find(p=>p.date===today);
+  if(!plan){
+    wrap.innerHTML=`
+      <div class="plan-top">
+        <div>
+          <div class="plan-date">${today}</div>
+          <div class="plan-focus">今天还没有安排计划</div>
+        </div>
+        <span class="plan-status">待安排</span>
+      </div>
+      <div class="plan-task plan-empty">去“每日计划”写下今天需要完成什么。计划只负责安排，论文板块负责记录实际推进。</div>`;
+    return;
+  }
+  wrap.innerHTML=`
+    <div class="plan-top">
+      <div>
+        <div class="plan-date">${esc(plan.date)}</div>
+        <div class="plan-focus">${esc(plan.section)}</div>
+      </div>
+      <span class="plan-status">${esc(plan.status||"未开始")}</span>
+    </div>
+    <div class="plan-task">${esc(plan.tasks)}</div>`;
+}
+
 function renderTrend(){
   const wrap=document.getElementById("trend");
+  const records=getProgressRecords();
   const dates=[];
   const now=new Date(todayISO()+"T00:00:00");
   for(let i=6;i>=0;i--){
-    const d=new Date(now);d.setDate(now.getDate()-i);
+    const d=new Date(now);
+    d.setDate(now.getDate()-i);
     const iso=d.toISOString().slice(0,10);
-    const sum=data.daily.filter(r=>r.date===iso).reduce((a,b)=>a+Number(b.net||0),0);
+    const sum=records.filter(r=>r.date===iso).reduce((a,b)=>a+Number(b.net||0),0);
     dates.push({iso,sum});
   }
   const max=Math.max(1,...dates.map(x=>Math.abs(x.sum)));
-  wrap.innerHTML=dates.map(x=>{
+  const colors=["#A9576B","#B36B3F","#9A7C2F","#4E8863","#3E817B","#4D7FA0","#7C5E99"];
+  wrap.innerHTML=dates.map((x,i)=>{
     const h=Math.max(3,Math.round(Math.abs(x.sum)/max*95));
     return `<div class="barwrap">
-      <div class="barval">${x.sum?((x.sum>0?"+":"")+num(x.sum)):"0"}</div>
-      <div class="bar" style="height:${h}px;background:${["#A9576B","#B36B3F","#9A7C2F","#4E8863","#3E817B","#4D7FA0","#7C5E99"][dates.indexOf(x)]};${x.sum<0?'opacity:.45':''}"></div>
+      <div class="barval">${x.sum?signedNum(x.sum):"0"}</div>
+      <div class="bar" style="height:${h}px;background:${colors[i]};${x.sum<0?'opacity:.45':''}"></div>
       <div class="barlabel">${x.iso.slice(5).replace("-","/")}</div>
     </div>`;
   }).join("");
 }
-function renderDaily(){
-  const rows=[...data.daily].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
-  document.getElementById("dailyRows").innerHTML=rows.map(r=>`
-  <tr>
-    <td>${esc(r.date)}</td><td>${esc(r.section)}</td><td>${num(r.start)}</td><td>${num(r.end)}</td>
-    <td>${r.net>0?"+":""}${num(r.net)}</td><td>${esc(r.done)||"—"}</td><td>${esc(r.problem)||"—"}</td><td>${esc(r.next)||"—"}</td>
-    <td><button class="btn danger smallbtn" onclick="deleteDaily(${r.id})">删除</button></td>
-  </tr>`).join("") || `<tr><td colspan="9" class="empty">暂无每日记录</td></tr>`;
+
+function renderJourney(){
+  const rows=document.getElementById("journeyRows");
+  const plansByDate=new Map((data.plans||[]).map(p=>[p.date,p]));
+  const progress=getProgressRecords();
+  const progressByDate=new Map();
+  progress.forEach(r=>{
+    if(!progressByDate.has(r.date)) progressByDate.set(r.date,[]);
+    progressByDate.get(r.date).push(r);
+  });
+  const dates=[...new Set([...plansByDate.keys(),...progressByDate.keys()])]
+    .filter(Boolean)
+    .sort((a,b)=>b.localeCompare(a));
+
+  rows.innerHTML=dates.map(date=>{
+    const plan=plansByDate.get(date);
+    const items=(progressByDate.get(date)||[]).sort((a,b)=>Number(a.id)-Number(b.id));
+
+    const planHtml=plan ? `
+      <div class="journey-item">
+        <div class="journey-section">${esc(plan.section)}</div>
+        <div class="journey-meta">${esc(plan.status||"未开始")}</div>
+        <div class="journey-text">${esc(plan.tasks)}</div>
+      </div>` : `<span class="empty">当日无计划记录</span>`;
+
+    const progressHtml=items.length ? items.map(r=>`
+      <div class="journey-item">
+        <div class="journey-section">${esc(r.section)}</div>
+        ${r.net!==0?`<div class="journey-meta">字数变化 ${signedNum(r.net)}</div>`:""}
+        <div class="journey-text">${esc(r.text)}</div>
+      </div>`).join("") : `<span class="empty">当日无论文推进记录</span>`;
+
+    return `<tr>
+      <td>${formatDate(date)}</td>
+      <td>${planHtml}</td>
+      <td>${progressHtml}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="3" class="empty">还没有历程记录。填写每日计划或更新论文板块后，这里会自动出现。</td></tr>`;
 }
 
-function renderAll(){ renderDashboard(); renderDaily(); }
+function renderAll(){
+  renderDashboard();
+  renderJourney();
+}
 
-document.querySelectorAll(".tabbtn").forEach(btn=>btn.addEventListener("click",()=>{
-  document.querySelectorAll(".tabbtn").forEach(b=>b.classList.remove("active"));
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-  btn.classList.add("active"); document.getElementById(btn.dataset.tab).classList.add("active");
+function switchTab(tab){
+  document.querySelectorAll(".tabbtn[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
+  document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===tab));
+}
+document.querySelectorAll(".tabbtn[data-tab]").forEach(btn=>btn.addEventListener("click",()=>{
+  switchTab(btn.dataset.tab);
+  if(btn.dataset.tab==="plan") loadPlanForDate(document.getElementById("pDate").value||todayISO());
 }));
 
-document.getElementById("dailyForm").addEventListener("submit",e=>{
-  e.preventDefault();
-  const start=Number(document.getElementById("dStart").value||0);
-  const end=Number(document.getElementById("dEnd").value||0);
-  const hasBoth=document.getElementById("dStart").value!=="" && document.getElementById("dEnd").value!=="";
-  data.daily.push({
-    id:Date.now(),
-    date:document.getElementById("dDate").value,
-    section:document.getElementById("dSection").value,
-    start, end, net:hasBoth?end-start:0,
-    done:document.getElementById("dDone").value.trim(),
-    problem:document.getElementById("dProblem").value.trim(),
-    next:document.getElementById("dNext").value.trim()
-  });
-  e.target.reset(); document.getElementById("dDate").value=todayISO(); save();
-});
-
-function deleteDaily(id){
-  if(confirm("确定删除这条每日记录吗？")){ data.daily=data.daily.filter(x=>x.id!==id); save(); }
+function goToPlan(){
+  switchTab("plan");
+  document.getElementById("pDate").value=todayISO();
+  loadPlanForDate(todayISO());
+  setTimeout(()=>document.getElementById("pTasks").focus(),50);
 }
 
+function loadPlanForDate(date){
+  const plan=(data.plans||[]).find(p=>p.date===date);
+  if(plan){
+    document.getElementById("pSection").value=plan.section;
+    document.getElementById("pTasks").value=plan.tasks;
+    document.getElementById("pStatus").value=plan.status||"未开始";
+  }else{
+    document.getElementById("pSection").value=SECTION_NAMES[0];
+    document.getElementById("pTasks").value="";
+    document.getElementById("pStatus").value="未开始";
+  }
+}
+document.getElementById("pDate").addEventListener("change",e=>loadPlanForDate(e.target.value));
+
+document.getElementById("planForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const date=document.getElementById("pDate").value;
+  const plan={
+    id:Date.now(),
+    date,
+    section:document.getElementById("pSection").value,
+    tasks:document.getElementById("pTasks").value.trim(),
+    status:document.getElementById("pStatus").value
+  };
+  const idx=(data.plans||[]).findIndex(p=>p.date===date);
+  if(idx>=0){
+    plan.id=data.plans[idx].id||Date.now();
+    data.plans[idx]=plan;
+  }else{
+    data.plans.push(plan);
+  }
+  save();
+  alert("每日计划已保存。");
+});
+
+function deletePlanForSelectedDate(){
+  const date=document.getElementById("pDate").value;
+  const exists=(data.plans||[]).some(p=>p.date===date);
+  if(!exists){
+    alert("这一天还没有计划。");
+    return;
+  }
+  if(confirm(`确定删除 ${date} 的每日计划吗？`)){
+    data.plans=data.plans.filter(p=>p.date!==date);
+    save();
+    loadPlanForDate(date);
+  }
+}
 
 function openSectionModal(){
   document.getElementById("sectionModal").classList.add("show");
@@ -610,7 +832,9 @@ function openSectionModal(){
 }
 function closeSectionModal(){ document.getElementById("sectionModal").classList.remove("show"); }
 function editSection(name){
-  document.getElementById("sName").value=name; openSectionModal(); loadSectionForm(name);
+  document.getElementById("sName").value=name;
+  openSectionModal();
+  loadSectionForm(name);
 }
 function loadSectionForm(name){
   const s=data.sections.find(x=>x.name===name) || data.sections[0];
@@ -621,60 +845,137 @@ function loadSectionForm(name){
   document.getElementById("sNext").value=s.next||"";
 }
 document.getElementById("sName").addEventListener("change",e=>loadSectionForm(e.target.value));
+
 document.getElementById("sectionForm").addEventListener("submit",e=>{
   e.preventDefault();
   const name=document.getElementById("sName").value;
   const s=data.sections.find(x=>x.name===name);
-  s.words=Number(document.getElementById("sWords").value||0);
-  s.status=document.getElementById("sStatus").value;
-  s.detail=document.getElementById("sDetail").value.trim();
-  s.next=document.getElementById("sNext").value.trim();
-  save(); closeSectionModal();
+  const old={
+    words:Number(s.words||0),
+    status:s.status||"未开始",
+    detail:s.detail||"",
+    next:s.next||""
+  };
+  const updated={
+    words:Number(document.getElementById("sWords").value||0),
+    status:document.getElementById("sStatus").value,
+    detail:document.getElementById("sDetail").value.trim(),
+    next:document.getElementById("sNext").value.trim()
+  };
+
+  const changes=[];
+  const net=updated.words-old.words;
+  if(updated.words!==old.words) changes.push(`当前字数 ${num(old.words)} → ${num(updated.words)}（${signedNum(net)}）`);
+  if(updated.status!==old.status) changes.push(`状态「${old.status}」→「${updated.status}」`);
+  if(updated.detail!==old.detail){
+    if(old.detail && updated.detail) changes.push(`完成情况「${old.detail}」→「${updated.detail}」`);
+    else if(updated.detail) changes.push(`完成情况更新为「${updated.detail}」`);
+    else changes.push("清空了当前完成情况");
+  }
+  if(updated.next!==old.next){
+    if(old.next && updated.next) changes.push(`下一步「${old.next}」→「${updated.next}」`);
+    else if(updated.next) changes.push(`下一步更新为「${updated.next}」`);
+    else changes.push("清空了下一步");
+  }
+
+  s.words=updated.words;
+  s.status=updated.status;
+  s.detail=updated.detail;
+  s.next=updated.next;
+
+  if(changes.length){
+    if(!Array.isArray(data.journey)) data.journey=[];
+    data.journey.push({
+      id:Date.now(),
+      date:todayISO(),
+      section:name,
+      start:old.words,
+      end:updated.words,
+      net,
+      text:changes.join("；")
+    });
+  }
+
+  save();
+  closeSectionModal();
 });
-document.getElementById("sectionModal").addEventListener("click",e=>{ if(e.target.id==="sectionModal") closeSectionModal(); });
+document.getElementById("sectionModal").addEventListener("click",e=>{
+  if(e.target.id==="sectionModal") closeSectionModal();
+});
 
 function downloadText(filename,text,type){
   const blob=new Blob([text],{type});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");a.href=url;a.download=filename;a.click();
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=filename;
+  a.click();
   setTimeout(()=>URL.revokeObjectURL(url),500);
 }
 function csvCell(v){ return `"${String(v??"").replace(/"/g,'""')}"`; }
-function exportDailyCSV(){
-  const header=["日期","今日板块","今日开始字数","今日结束字数","净增字数","今天具体完成了什么","遇到的问题","明日任务"];
-  const rows=[header,...[...data.daily].sort((a,b)=>a.date.localeCompare(b.date)).map(r=>[r.date,r.section,r.start,r.end,r.net,r.done,r.problem,r.next])];
+
+function exportJourneyCSV(){
+  const plansByDate=new Map((data.plans||[]).map(p=>[p.date,p]));
+  const progress=getProgressRecords();
+  const progressByDate=new Map();
+  progress.forEach(r=>{
+    if(!progressByDate.has(r.date)) progressByDate.set(r.date,[]);
+    progressByDate.get(r.date).push(r);
+  });
+  const dates=[...new Set([...plansByDate.keys(),...progressByDate.keys()])].filter(Boolean).sort();
+  const rows=[["日期","每日计划","论文推进记录"]];
+  dates.forEach(date=>{
+    const p=plansByDate.get(date);
+    const pText=p?`${p.section}｜${p.status}｜${p.tasks}`:"";
+    const rText=(progressByDate.get(date)||[]).map(r=>`${r.section}｜${r.net!==0?`字数${signedNum(r.net)}｜`:""}${r.text}`).join("\n");
+    rows.push([date,pText,rText]);
+  });
   const csv="\uFEFF"+rows.map(row=>row.map(csvCell).join(",")).join("\r\n");
-  downloadText("博士论文每日记录.csv",csv,"text/csv;charset=utf-8");
+  downloadText("小许博士论文历程记录.csv",csv,"text/csv;charset=utf-8");
 }
+
 function exportBackup(){
   downloadText("博士论文进度备份_"+todayISO()+".json",JSON.stringify(data,null,2),"application/json");
 }
 document.getElementById("importFile").addEventListener("change",e=>{
-  const file=e.target.files[0]; if(!file)return;
+  const file=e.target.files[0];
+  if(!file) return;
   const reader=new FileReader();
   reader.onload=()=>{
     try{
       const obj=JSON.parse(reader.result);
-      if(!obj.sections || !obj.daily) throw new Error("格式不正确");
-      if(!obj.milestones) obj.milestones=[];
+      if(!obj.sections) throw new Error("格式不正确");
+      if(!Array.isArray(obj.daily)) obj.daily=[];
+      if(!Array.isArray(obj.milestones)) obj.milestones=[];
+      if(!Array.isArray(obj.plans)) obj.plans=[];
+      if(!Array.isArray(obj.journey)) obj.journey=[];
       if(confirm("导入备份会覆盖当前网页中的数据，确定继续吗？")){
-        data=obj; save(); alert("备份已恢复。");
+        data=obj;
+        save();
+        loadPlanForDate(document.getElementById("pDate").value||todayISO());
+        alert("备份已恢复。");
       }
-    }catch(err){ alert("无法读取该备份文件。"); }
+    }catch(err){
+      alert("无法读取该备份文件。");
+    }
     e.target.value="";
   };
   reader.readAsText(file,"utf-8");
 });
 function clearAllData(){
-  if(confirm("这会清空所有板块状态和每日记录。确定继续吗？")){
+  if(confirm("这会清空论文板块、每日计划和历程记录。确定继续吗？")){
     if(confirm("再次确认：清空后只能通过之前导出的备份恢复。")){
-      data=defaultData(); save();
+      data=defaultData();
+      save();
+      document.getElementById("pDate").value=todayISO();
+      loadPlanForDate(todayISO());
     }
   }
 }
 
 fillSectionSelects();
-document.getElementById("dDate").value=todayISO();
+document.getElementById("pDate").value=todayISO();
+loadPlanForDate(todayISO());
 renderAll();
 
 const SITE_PASSWORD_HASH = "4c7b7ecb9e72ef50655e7cb570ddce6081117091d4727d2e103466773c30e6a8";
@@ -684,13 +985,11 @@ async function sha256Text(text){
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
-
 function showSite(){
   const screen=document.getElementById("loginScreen");
   if(screen) screen.classList.add("hidden");
   document.body.classList.remove("locked");
 }
-
 function lockSite(){
   sessionStorage.removeItem(SITE_UNLOCK_KEY);
   const screen=document.getElementById("loginScreen");
@@ -699,12 +998,10 @@ function lockSite(){
   const pw=document.getElementById("sitePassword");
   if(pw){pw.value=""; setTimeout(()=>pw.focus(),50);}
 }
-
 function togglePassword(){
   const input=document.getElementById("sitePassword");
   input.type=input.type==="password"?"text":"password";
 }
-
 document.getElementById("loginForm").addEventListener("submit", async (e)=>{
   e.preventDefault();
   const input=document.getElementById("sitePassword");
@@ -719,11 +1016,10 @@ document.getElementById("loginForm").addEventListener("submit", async (e)=>{
     input.select();
   }
 });
-
 if(sessionStorage.getItem(SITE_UNLOCK_KEY)==="1"){
   showSite();
 }
-
 </script>
+
 </body>
 </html>
