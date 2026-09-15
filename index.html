@@ -518,7 +518,7 @@
       <div class="card">
         <div class="metric-label">全文当前字数</div>
         <div class="metric-value" id="totalWords">0</div>
-        <div class="metric-note">来自 10 个论文板块的当前字数</div>
+        <div class="metric-note">取最近一次每日计划与复盘的日终字数</div>
       </div>
       <div class="card">
         <div class="metric-label">今日净增字数</div>
@@ -890,6 +890,14 @@ function getNetForDate(date){
   return pNet===null ? 0 : pNet;
 }
 
+
+function getLatestEndWords(){
+  const plans=(data.plans||[])
+    .filter(p=>p && p.date && p.endWords!==null && p.endWords!=="" && p.endWords!==undefined)
+    .sort((a,b)=>b.date.localeCompare(a.date)||Number(b.id||0)-Number(a.id||0));
+  return plans.length ? Number(plans[0].endWords||0) : 0;
+}
+
 function getLatestProgress(){
   // “最近推进板块”只看每日计划与复盘，避免一次板块编辑把它误判为最新推进。
   const candidates=(data.plans||[])
@@ -904,7 +912,7 @@ function getLatestProgress(){
 }
 
 function renderDashboard(){
-  const total=data.sections.reduce((a,b)=>a+Number(b.words||0),0);
+  const total=getLatestEndWords();
   document.getElementById("totalWords").textContent=num(total);
 
   const today=todayISO();
