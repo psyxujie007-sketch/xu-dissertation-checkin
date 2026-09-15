@@ -318,11 +318,49 @@
     margin-bottom:8px;
   }
   .journey-item:last-child{margin-bottom:0}
+  .journey-item-head{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+  }
+  .journey-delete{
+    border:1px solid #E2C7D1;background:#FFF9FB;color:#9A5A72;
+    border-radius:8px;padding:4px 7px;font-size:11px;font-weight:700;
+    cursor:pointer;white-space:nowrap;
+  }
+  .journey-delete:hover{background:#FBECEF}
   .journey-section{font-weight:800;color:#665074;margin-bottom:3px}
   .journey-meta{font-size:12px;color:#8B7E92;margin-bottom:3px}
   .journey-text{font-size:13px;color:#4C424F}
   .plan-preview{
     margin-top:16px;padding:14px;border-radius:12px;background:#F8F4FA;border:1px solid #E1D5E8;
+  }
+  .plan-block{
+    padding:16px;border-radius:14px;border:1px solid #E0D4E7;background:#FFFCFF;
+    margin-bottom:14px;
+  }
+  .plan-block-title{
+    display:flex;align-items:center;gap:8px;margin-bottom:12px;
+    color:#5B426D;font-size:15px;font-weight:900;
+  }
+  .plan-block-title .dot{
+    width:9px;height:9px;border-radius:50%;background:#8A67A3;display:inline-block;
+  }
+  .review-block{background:linear-gradient(135deg,#FCF8FD,#F3F6FB)}
+  .net-box{
+    padding:12px 14px;border-radius:12px;background:#F0E7F6;border:1px solid #D9C9E4;
+    color:#634D73;font-weight:800;font-size:14px;
+  }
+  .tomorrow-reminder{
+    margin-bottom:14px;padding:12px 14px;border-radius:12px;
+    background:#FFF8EC;border:1px solid #E9D7B5;color:#765D2F;line-height:1.7;
+  }
+  .tomorrow-reminder strong{color:#624A1F}
+  .journey-plan-label{
+    display:inline-block;margin-right:6px;padding:2px 6px;border-radius:6px;
+    background:#EDE2F3;color:#6B4F7C;font-size:11px;font-weight:800;
+  }
+  .journey-review-label{
+    display:inline-block;margin-right:6px;padding:2px 6px;border-radius:6px;
+    background:#E6F0F7;color:#506D84;font-size:11px;font-weight:800;
   }
   @media(max-width:700px){
     .plan-top{flex-direction:column}
@@ -372,7 +410,7 @@
 <nav>
   <div class="navwrap">
     <button class="tabbtn active" data-tab="dashboard">总览</button>
-    <button class="tabbtn" data-tab="plan">每日计划</button>
+    <button class="tabbtn" data-tab="plan">每日计划与复盘</button>
     <button class="tabbtn" data-tab="journey">历程记录</button>
     <button class="tabbtn" data-tab="backup">备份与恢复</button>
     <button class="lock-btn" onclick="lockSite()">🔒 锁定</button>
@@ -405,8 +443,8 @@
     </div>
 
     <div class="section-title">
-      <h2>今日计划</h2>
-      <button class="btn secondary" onclick="goToPlan()">编辑今日计划</button>
+      <h2>今日计划与复盘</h2>
+      <button class="btn secondary" onclick="goToPlan()">编辑今日计划与复盘</button>
     </div>
     <div id="todayPlanCard" class="today-plan-card"></div>
 
@@ -421,40 +459,71 @@
   </section>
 
   <section id="plan" class="page">
-    <div class="section-title"><h2>每日计划</h2></div>
+    <div class="section-title"><h2>每日计划与复盘</h2></div>
+    <div id="tomorrowReminder"></div>
     <div class="panel">
       <form id="planForm">
-        <div class="form-grid">
-          <div>
-            <label>日期</label>
-            <input type="date" id="pDate" required>
+        <div class="plan-block">
+          <div class="plan-block-title"><span class="dot"></span>今日计划</div>
+          <div class="form-grid">
+            <div>
+              <label>日期</label>
+              <input type="date" id="pDate" required>
+            </div>
+            <div>
+              <label>今日重点板块</label>
+              <select id="pSection" required></select>
+            </div>
+            <div>
+              <label>今日起始字数</label>
+              <input type="number" min="0" id="pStartWords" placeholder="例如 12840">
+            </div>
+            <div></div>
+            <div class="span2">
+              <label>今日计划</label>
+              <textarea id="pTasks" required placeholder="例如：&#10;1. 完成研究四结果 3.2&#10;2. 整理图 4 和表 6&#10;3. 补充两篇核心文献"></textarea>
+            </div>
           </div>
-          <div>
-            <label>今日重点板块</label>
-            <select id="pSection" required></select>
-          </div>
-          <div class="span2">
-            <label>今天需要完成什么</label>
-            <textarea id="pTasks" required placeholder="例如：&#10;1. 完成研究四结果 3.2&#10;2. 整理图 4 和表 6&#10;3. 补充两篇核心文献"></textarea>
-          </div>
-          <div>
-            <label>完成状态</label>
-            <select id="pStatus">
-              <option>未开始</option>
-              <option>进行中</option>
-              <option>部分完成</option>
-              <option>已完成</option>
-            </select>
-          </div>
-          <div></div>
         </div>
+
+        <div class="plan-block review-block">
+          <div class="plan-block-title"><span class="dot"></span>今日复盘</div>
+          <div class="form-grid">
+            <div>
+              <label>今日完成状态</label>
+              <select id="pStatus">
+                <option>未开始</option>
+                <option>进行中</option>
+                <option>部分完成</option>
+                <option>已完成</option>
+              </select>
+            </div>
+            <div>
+              <label>日终字数</label>
+              <input type="number" min="0" id="pEndWords" placeholder="例如 13420">
+            </div>
+            <div class="span2">
+              <div class="net-box">今日净增字数：<span id="pNetWords">0</span></div>
+            </div>
+            <div class="span2">
+              <label>今日随记</label>
+              <textarea id="pNote" placeholder="可以写感受、卡点、状态、突然想到的事情……"></textarea>
+            </div>
+            <div class="span2">
+              <label>明日推进</label>
+              <textarea id="pTomorrow" placeholder="例如：完成研究四结果 3.3，并开始讨论第一段"></textarea>
+            </div>
+          </div>
+        </div>
+
         <div class="form-actions">
-          <button class="btn danger" type="button" onclick="deletePlanForSelectedDate()">删除该日计划</button>
-          <button class="btn" type="submit">保存每日计划</button>
+          <button class="btn danger" type="button" onclick="deletePlanForSelectedDate()">删除该日记录</button>
+          <button class="btn" type="submit">保存计划与复盘</button>
         </div>
       </form>
+
       <div class="plan-preview">
-        <div class="hint">提示：选择已有日期时，会自动载入当天计划；保存后会同步显示在“总览”的论文板块上方，并进入“历程记录”。</div>
+        <div class="hint">同一天只保留一份“计划与复盘”。切换到已有日期时会自动载入；保存后会显示在总览，并进入历程记录。</div>
       </div>
     </div>
   </section>
@@ -469,7 +538,7 @@
         <thead>
           <tr>
             <th>日期</th>
-            <th>每日计划</th>
+            <th>每日计划与复盘</th>
             <th>论文推进记录</th>
           </tr>
         </thead>
@@ -556,6 +625,13 @@ function loadData(){
     if(!Array.isArray(parsed.daily)) parsed.daily=[];
     if(!Array.isArray(parsed.milestones)) parsed.milestones=[];
     if(!Array.isArray(parsed.plans)) parsed.plans=[];
+    parsed.plans=parsed.plans.map(p=>Object.assign({
+      startWords:null,
+      endWords:null,
+      note:"",
+      tomorrow:"",
+      status:"未开始"
+    },p));
     if(!Array.isArray(parsed.journey)) parsed.journey=[];
     SECTION_NAMES.forEach(n=>{
       if(!parsed.sections.find(s=>s.name===n)){
@@ -599,6 +675,7 @@ function fillSectionSelects(){
 function getProgressRecords(){
   const legacy=(data.daily||[]).map(r=>({
     id:Number(r.id||0),
+    source:"legacy",
     date:r.date,
     section:r.section||"未指定",
     net:Number(r.net||0),
@@ -612,6 +689,7 @@ function getProgressRecords(){
   }));
   const auto=(data.journey||[]).map(r=>({
     id:Number(r.id||0),
+    source:"journey",
     date:r.date,
     section:r.section||"未指定",
     net:Number(r.net||0),
@@ -622,28 +700,58 @@ function getProgressRecords(){
   return [...legacy,...auto];
 }
 
+function planNet(plan){
+  const hasStart=plan && plan.startWords!==null && plan.startWords!=="" && plan.startWords!==undefined;
+  const hasEnd=plan && plan.endWords!==null && plan.endWords!=="" && plan.endWords!==undefined;
+  if(!hasStart || !hasEnd) return null;
+  return Number(plan.endWords)-Number(plan.startWords);
+}
+
+function getNetForDate(date){
+  const plan=(data.plans||[]).find(p=>p.date===date);
+  const pNet=planNet(plan);
+  if(pNet!==null) return pNet;
+
+  const legacy=(data.daily||[]).filter(r=>r.date===date);
+  if(legacy.length) return legacy.reduce((a,b)=>a+Number(b.net||0),0);
+
+  return (data.journey||[]).filter(r=>r.date===date).reduce((a,b)=>a+Number(b.net||0),0);
+}
+
+function getLatestProgress(){
+  const candidates=[];
+  (data.plans||[]).forEach(p=>{
+    const n=planNet(p);
+    if(p.status!=="未开始" || n!==null || p.note){
+      candidates.push({date:p.date,id:Number(p.id||0),section:p.section||"未指定"});
+    }
+  });
+  getProgressRecords().forEach(r=>candidates.push({date:r.date,id:r.id,section:r.section}));
+  candidates.sort((a,b)=>b.date.localeCompare(a.date)||Number(b.id)-Number(a.id));
+  return candidates[0]||null;
+}
+
 function renderDashboard(){
   const total=data.sections.reduce((a,b)=>a+Number(b.words||0),0);
   document.getElementById("totalWords").textContent=num(total);
 
-  const records=getProgressRecords();
   const today=todayISO();
-  const todaySum=records.filter(r=>r.date===today).reduce((a,b)=>a+Number(b.net||0),0);
+  const todaySum=getNetForDate(today);
   document.getElementById("todayWords").textContent=signedNum(todaySum);
 
   const now=new Date(today+"T00:00:00");
-  const weekStart=new Date(now);
-  weekStart.setDate(now.getDate()-6);
-  const weekSum=records.filter(r=>{
-    const d=new Date(r.date+"T00:00:00");
-    return d>=weekStart && d<=now;
-  }).reduce((a,b)=>a+Number(b.net||0),0);
+  let weekSum=0;
+  for(let i=0;i<7;i++){
+    const d=new Date(now);
+    d.setDate(now.getDate()-i);
+    weekSum+=getNetForDate(d.toISOString().slice(0,10));
+  }
   document.getElementById("weekWords").textContent=signedNum(weekSum);
 
-  const sorted=[...records].sort((a,b)=>b.date.localeCompare(a.date)||Number(b.id)-Number(a.id));
-  if(sorted.length){
-    document.getElementById("latestSection").textContent=sorted[0].section;
-    document.getElementById("latestDate").textContent=sorted[0].date+" 最近推进";
+  const latest=getLatestProgress();
+  if(latest){
+    document.getElementById("latestSection").textContent=latest.section;
+    document.getElementById("latestDate").textContent=latest.date+" 最近推进";
   }else{
     document.getElementById("latestSection").textContent="—";
     document.getElementById("latestDate").textContent="尚无推进记录";
@@ -679,9 +787,15 @@ function renderTodayPlan(){
         </div>
         <span class="plan-status">待安排</span>
       </div>
-      <div class="plan-task plan-empty">去“每日计划”写下今天需要完成什么。计划只负责安排，论文板块负责记录实际推进。</div>`;
+      <div class="plan-task plan-empty">去“每日计划与复盘”写下今天要做什么。晚上再补上日终字数、今日随记和明日推进。</div>`;
     return;
   }
+  const n=planNet(plan);
+  const reviewBits=[];
+  if(plan.endWords!==null && plan.endWords!=="" && plan.endWords!==undefined) reviewBits.push(`日终字数 ${num(plan.endWords)}`);
+  if(n!==null) reviewBits.push(`净增 ${signedNum(n)}`);
+  if(plan.note) reviewBits.push(`随记：${plan.note}`);
+  if(plan.tomorrow) reviewBits.push(`明日推进：${plan.tomorrow}`);
   wrap.innerHTML=`
     <div class="plan-top">
       <div>
@@ -690,19 +804,19 @@ function renderTodayPlan(){
       </div>
       <span class="plan-status">${esc(plan.status||"未开始")}</span>
     </div>
-    <div class="plan-task">${esc(plan.tasks)}</div>`;
+    <div class="plan-task"><strong>今日计划：</strong>${esc(plan.tasks)}</div>
+    ${reviewBits.length?`<div class="plan-task" style="margin-top:10px"><strong>今日复盘：</strong>${esc(reviewBits.join("；"))}</div>`:""}`;
 }
 
 function renderTrend(){
   const wrap=document.getElementById("trend");
-  const records=getProgressRecords();
   const dates=[];
   const now=new Date(todayISO()+"T00:00:00");
   for(let i=6;i>=0;i--){
     const d=new Date(now);
     d.setDate(now.getDate()-i);
     const iso=d.toISOString().slice(0,10);
-    const sum=records.filter(r=>r.date===iso).reduce((a,b)=>a+Number(b.net||0),0);
+    const sum=getNetForDate(iso);
     dates.push({iso,sum});
   }
   const max=Math.max(1,...dates.map(x=>Math.abs(x.sum)));
@@ -734,16 +848,30 @@ function renderJourney(){
     const plan=plansByDate.get(date);
     const items=(progressByDate.get(date)||[]).sort((a,b)=>Number(a.id)-Number(b.id));
 
+    const pNet=planNet(plan);
     const planHtml=plan ? `
       <div class="journey-item">
-        <div class="journey-section">${esc(plan.section)}</div>
-        <div class="journey-meta">${esc(plan.status||"未开始")}</div>
-        <div class="journey-text">${esc(plan.tasks)}</div>
-      </div>` : `<span class="empty">当日无计划记录</span>`;
+        <div class="journey-item-head">
+          <div class="journey-section">${esc(plan.section)}</div>
+          <button class="journey-delete" onclick="deleteJourneyPlan('${esc(date)}')">删除</button>
+        </div>
+        <div class="journey-meta">${esc(plan.status||"未开始")}${pNet!==null?` · 净增 ${signedNum(pNet)}`:""}</div>
+        <div class="journey-text"><span class="journey-plan-label">计划</span>${esc(plan.tasks)}</div>
+        ${(plan.endWords!==null && plan.endWords!=="" && plan.endWords!==undefined) || plan.note || plan.tomorrow ? `
+          <div class="journey-text" style="margin-top:8px">
+            <span class="journey-review-label">复盘</span>
+            ${plan.endWords!==null && plan.endWords!=="" && plan.endWords!==undefined ? `日终字数 ${num(plan.endWords)}${pNet!==null?`，净增 ${signedNum(pNet)}`:""}`:""}
+            ${plan.note?`${plan.endWords!==null && plan.endWords!=="" && plan.endWords!==undefined?"；":""}今日随记：${esc(plan.note)}`:""}
+            ${plan.tomorrow?`${(plan.endWords!==null && plan.endWords!=="" && plan.endWords!==undefined)||plan.note?"；":""}明日推进：${esc(plan.tomorrow)}`:""}
+          </div>`:""}
+      </div>` : `<span class="empty">当日无计划与复盘记录</span>`;
 
     const progressHtml=items.length ? items.map(r=>`
       <div class="journey-item">
-        <div class="journey-section">${esc(r.section)}</div>
+        <div class="journey-item-head">
+          <div class="journey-section">${esc(r.section)}</div>
+          <button class="journey-delete" onclick="deleteJourneyProgress('${esc(r.source)}',${Number(r.id)})">删除</button>
+        </div>
         ${r.net!==0?`<div class="journey-meta">字数变化 ${signedNum(r.net)}</div>`:""}
         <div class="journey-text">${esc(r.text)}</div>
       </div>`).join("") : `<span class="empty">当日无论文推进记录</span>`;
@@ -759,6 +887,31 @@ function renderJourney(){
 function renderAll(){
   renderDashboard();
   renderJourney();
+}
+
+
+function deleteJourneyPlan(date){
+  const plan=(data.plans||[]).find(p=>p.date===date);
+  if(!plan) return;
+  if(confirm(`确定删除 ${date} 的这条每日计划记录吗？`)){
+    data.plans=data.plans.filter(p=>p.date!==date);
+    save();
+    if(document.getElementById("pDate").value===date){
+      loadPlanForDate(date);
+    }
+  }
+}
+
+function deleteJourneyProgress(source,id){
+  const label=source==="legacy" ? "历史推进记录" : "论文推进记录";
+  if(!confirm(`确定删除这条${label}吗？`)) return;
+
+  if(source==="legacy"){
+    data.daily=(data.daily||[]).filter(r=>Number(r.id)!==Number(id));
+  }else{
+    data.journey=(data.journey||[]).filter(r=>Number(r.id)!==Number(id));
+  }
+  save();
 }
 
 function switchTab(tab){
@@ -777,29 +930,76 @@ function goToPlan(){
   setTimeout(()=>document.getElementById("pTasks").focus(),50);
 }
 
+function updatePlanNetPreview(){
+  const s=document.getElementById("pStartWords").value;
+  const e=document.getElementById("pEndWords").value;
+  const el=document.getElementById("pNetWords");
+  if(s!=="" && e!==""){
+    el.textContent=signedNum(Number(e)-Number(s));
+  }else{
+    el.textContent="0";
+  }
+}
+
+function getPreviousDate(date){
+  const d=new Date(date+"T00:00:00");
+  d.setDate(d.getDate()-1);
+  return d.toISOString().slice(0,10);
+}
+
+function renderTomorrowReminder(date){
+  const wrap=document.getElementById("tomorrowReminder");
+  if(!wrap) return;
+  const prev=getPreviousDate(date);
+  const prevPlan=(data.plans||[]).find(p=>p.date===prev);
+  if(prevPlan && prevPlan.tomorrow){
+    wrap.innerHTML=`<div class="tomorrow-reminder"><strong>昨日留下的明日推进：</strong>${esc(prevPlan.tomorrow)}</div>`;
+  }else{
+    wrap.innerHTML="";
+  }
+}
+
 function loadPlanForDate(date){
   const plan=(data.plans||[]).find(p=>p.date===date);
   if(plan){
     document.getElementById("pSection").value=plan.section;
+    document.getElementById("pStartWords").value=plan.startWords??"";
     document.getElementById("pTasks").value=plan.tasks;
     document.getElementById("pStatus").value=plan.status||"未开始";
+    document.getElementById("pEndWords").value=plan.endWords??"";
+    document.getElementById("pNote").value=plan.note||"";
+    document.getElementById("pTomorrow").value=plan.tomorrow||"";
   }else{
     document.getElementById("pSection").value=SECTION_NAMES[0];
+    document.getElementById("pStartWords").value="";
     document.getElementById("pTasks").value="";
     document.getElementById("pStatus").value="未开始";
+    document.getElementById("pEndWords").value="";
+    document.getElementById("pNote").value="";
+    document.getElementById("pTomorrow").value="";
   }
+  updatePlanNetPreview();
+  renderTomorrowReminder(date);
 }
 document.getElementById("pDate").addEventListener("change",e=>loadPlanForDate(e.target.value));
+document.getElementById("pStartWords").addEventListener("input",updatePlanNetPreview);
+document.getElementById("pEndWords").addEventListener("input",updatePlanNetPreview);
 
 document.getElementById("planForm").addEventListener("submit",e=>{
   e.preventDefault();
   const date=document.getElementById("pDate").value;
+  const startRaw=document.getElementById("pStartWords").value;
+  const endRaw=document.getElementById("pEndWords").value;
   const plan={
     id:Date.now(),
     date,
     section:document.getElementById("pSection").value,
+    startWords:startRaw===""?null:Number(startRaw),
     tasks:document.getElementById("pTasks").value.trim(),
-    status:document.getElementById("pStatus").value
+    status:document.getElementById("pStatus").value,
+    endWords:endRaw===""?null:Number(endRaw),
+    note:document.getElementById("pNote").value.trim(),
+    tomorrow:document.getElementById("pTomorrow").value.trim()
   };
   const idx=(data.plans||[]).findIndex(p=>p.date===date);
   if(idx>=0){
@@ -809,7 +1009,7 @@ document.getElementById("planForm").addEventListener("submit",e=>{
     data.plans.push(plan);
   }
   save();
-  alert("每日计划已保存。");
+  alert("每日计划与复盘已保存。");
 });
 
 function deletePlanForSelectedDate(){
@@ -923,10 +1123,20 @@ function exportJourneyCSV(){
     progressByDate.get(r.date).push(r);
   });
   const dates=[...new Set([...plansByDate.keys(),...progressByDate.keys()])].filter(Boolean).sort();
-  const rows=[["日期","每日计划","论文推进记录"]];
+  const rows=[["日期","每日计划与复盘","论文推进记录"]];
   dates.forEach(date=>{
     const p=plansByDate.get(date);
-    const pText=p?`${p.section}｜${p.status}｜${p.tasks}`:"";
+    const pNet=planNet(p);
+    const pText=p?[
+      `重点板块：${p.section}`,
+      `计划：${p.tasks}`,
+      p.startWords!==null && p.startWords!==undefined ? `起始字数：${p.startWords}` : "",
+      p.endWords!==null && p.endWords!==undefined ? `日终字数：${p.endWords}` : "",
+      pNet!==null ? `净增：${signedNum(pNet)}` : "",
+      `完成状态：${p.status}`,
+      p.note ? `今日随记：${p.note}` : "",
+      p.tomorrow ? `明日推进：${p.tomorrow}` : ""
+    ].filter(Boolean).join("\n"):"";
     const rText=(progressByDate.get(date)||[]).map(r=>`${r.section}｜${r.net!==0?`字数${signedNum(r.net)}｜`:""}${r.text}`).join("\n");
     rows.push([date,pText,rText]);
   });
