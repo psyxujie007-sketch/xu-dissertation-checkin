@@ -400,6 +400,53 @@
     display:inline-block;margin-right:6px;padding:2px 6px;border-radius:6px;
     background:#E6F0F7;color:#506D84;font-size:11px;font-weight:800;
   }
+
+  /* ===== 任务清单 / 自动保存 ===== */
+  .task-add-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+  .task-add-row input{flex:1}
+  .task-list{display:flex;flex-direction:column;gap:8px}
+  .task-row{
+    display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;
+    border:1px solid #E4DAEA;background:#FFFDFE;transition:.16s ease;
+  }
+  .task-row:hover{border-color:#CDB9DA;background:#FCF8FD}
+  .task-check{width:18px;height:18px;min-width:18px;accent-color:#76578D;cursor:pointer}
+  .task-edit-text{
+    flex:1;border:0!important;padding:4px 2px!important;background:transparent!important;
+    box-shadow:none!important;color:#453A4B;
+  }
+  .task-row.done .task-edit-text{text-decoration:line-through;color:#9A909E}
+  .task-remove{
+    width:25px;height:25px;border-radius:50%;border:0;background:transparent;
+    color:#B07A89;cursor:pointer;font-size:16px;line-height:1;
+  }
+  .task-remove:hover{background:#FBECEF;color:#9A5267}
+  .task-empty{
+    padding:12px;border-radius:10px;background:#F9F6FA;color:#9A909E;
+    font-size:12px;text-align:center;
+  }
+  .display-checklist{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+  .display-task{display:flex;align-items:flex-start;gap:9px;line-height:1.55;font-size:14px}
+  .display-task input{
+    width:17px;height:17px;min-width:17px;margin-top:2px;accent-color:#76578D;cursor:pointer;
+  }
+  .display-task.done .display-task-text{text-decoration:line-through;color:#9B919F}
+  .static-check{
+    width:15px;height:15px;min-width:15px;margin-top:3px;border:1.5px solid #9A7CAB;
+    border-radius:4px;display:inline-flex;align-items:center;justify-content:center;
+    color:#755687;font-size:11px;font-weight:900;
+  }
+  .display-task.done .static-check{background:#7B5B90;border-color:#7B5B90;color:white}
+  .autosave-status{
+    display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;
+    background:#F2ECF5;color:#725D7E;font-size:11px;font-weight:800;
+  }
+  .autosave-dot{width:7px;height:7px;border-radius:50%;background:#A78CB4}
+  .autosave-status.saving .autosave-dot{background:#D5A04C}
+  .autosave-status.saved .autosave-dot{background:#6F9B7B}
+  .autosave-status.error .autosave-dot{background:#C56678}
+  .form-actions-left{margin-right:auto;display:flex;align-items:center}
+
   @media(max-width:700px){
     .plan-top{flex-direction:column}
     .journey-table td:first-child{min-width:110px;width:110px}
@@ -521,7 +568,11 @@
             <div></div>
             <div class="span2">
               <label>今日计划</label>
-              <textarea id="pTasks" required placeholder="例如：&#10;1. 完成研究四结果 3.2&#10;2. 整理图 4 和表 6&#10;3. 补充两篇核心文献"></textarea>
+              <div class="task-add-row">
+                <input id="pTaskInput" type="text" placeholder="输入一项任务，按 Enter 或点击添加">
+                <button class="btn secondary" type="button" onclick="addPlanTask()">＋ 添加</button>
+              </div>
+              <div id="pTaskList" class="task-list"></div>
             </div>
           </div>
         </div>
@@ -557,13 +608,18 @@
         </div>
 
         <div class="form-actions">
+          <div class="form-actions-left">
+            <div id="autoSaveStatus" class="autosave-status saved">
+              <span class="autosave-dot"></span><span>自动保存已开启</span>
+            </div>
+          </div>
           <button class="btn danger" type="button" onclick="deletePlanForSelectedDate()">删除该日记录</button>
-          <button class="btn" type="submit">保存计划与复盘</button>
+          <button class="btn" type="submit">手动保存</button>
         </div>
       </form>
 
       <div class="plan-preview">
-        <div class="hint">同一天只保留一份“计划与复盘”。切换到已有日期时会自动载入；保存后会显示在总览，并进入历程记录。</div>
+        <div class="hint">同一天只保留一份“计划与复盘”。内容会自动保存，也可以随时点击“手动保存”；任务勾选后自动加删除线并标记完成。</div>
       </div>
     </div>
   </section>
@@ -665,13 +721,29 @@ function loadData(){
     if(!Array.isArray(parsed.daily)) parsed.daily=[];
     if(!Array.isArray(parsed.milestones)) parsed.milestones=[];
     if(!Array.isArray(parsed.plans)) parsed.plans=[];
-    parsed.plans=parsed.plans.map(p=>Object.assign({
-      startWords:null,
-      endWords:null,
-      note:"",
-      tomorrow:"",
-      status:"未开始"
-    },p));
+    parsed.plans=parsed.plans.map(p=>{
+      const merged=Object.assign({
+        startWords:null,
+        endWords:null,
+        note:"",
+        tomorrow:"",
+        status:"未开始",
+        taskItems:[]
+      },p);
+
+      if(!Array.isArray(merged.taskItems) || !merged.taskItems.length){
+        const raw=String(merged.tasks||"").trim();
+        merged.taskItems=raw ? raw.split(/\n+/)
+          .map(x=>x.trim()).filter(Boolean)
+          .map((text,i)=>({
+            id:`legacy_${merged.id||merged.date||"plan"}_${i}`,
+            text:text.replace(/^\s*(?:[-•]\s*|\d+[\.、)]\s*)/,""),
+            done:false
+          })) : [];
+      }
+      merged.tasks=merged.taskItems.map(t=>t.text).join("\n");
+      return merged;
+    });
     if(!Array.isArray(parsed.journey)) parsed.journey=[];
     SECTION_NAMES.forEach(n=>{
       if(!parsed.sections.find(s=>s.name===n)){
@@ -738,6 +810,51 @@ function getProgressRecords(){
     text:r.text||"论文板块已更新"
   }));
   return [...legacy,...auto];
+}
+
+
+function normalizeTaskItems(plan){
+  if(!plan) return [];
+  if(Array.isArray(plan.taskItems)) return plan.taskItems;
+  const raw=String(plan.tasks||"").trim();
+  return raw ? raw.split(/\n+/).map((text,i)=>({
+    id:`task_${plan.id||plan.date||Date.now()}_${i}`,
+    text:text.trim().replace(/^\s*(?:[-•]\s*|\d+[\.、)]\s*)/,""),
+    done:false
+  })).filter(t=>t.text) : [];
+}
+function getPlanTasksText(plan){
+  return normalizeTaskItems(plan).map(t=>t.text).join("\n");
+}
+function syncPlanTaskText(plan){
+  if(plan) plan.tasks=getPlanTasksText(plan);
+}
+function renderStaticChecklist(plan){
+  const items=normalizeTaskItems(plan);
+  if(!items.length) return `<div class="plan-empty">今天还没有添加任务</div>`;
+  return `<div class="display-checklist">`+items.map(t=>`
+    <div class="display-task ${t.done?"done":""}">
+      <span class="static-check">${t.done?"✓":""}</span>
+      <span class="display-task-text">${esc(t.text)}</span>
+    </div>`).join("")+`</div>`;
+}
+function renderInteractiveChecklist(plan,date){
+  const items=normalizeTaskItems(plan);
+  if(!items.length) return `<div class="plan-empty">今天还没有添加任务</div>`;
+  return `<div class="display-checklist">`+items.map(t=>`
+    <label class="display-task ${t.done?"done":""}" onclick="event.stopPropagation()">
+      <input type="checkbox" ${t.done?"checked":""}
+             onchange="toggleDashboardTask('${esc(date)}','${esc(String(t.id))}',this.checked);event.stopPropagation()">
+      <span class="display-task-text">${esc(t.text)}</span>
+    </label>`).join("")+`</div>`;
+}
+function updatePlanStatusFromTasks(plan){
+  const items=normalizeTaskItems(plan);
+  if(!items.length) return;
+  const doneCount=items.filter(t=>t.done).length;
+  if(doneCount===items.length) plan.status="已完成";
+  else if(doneCount>0) plan.status="部分完成";
+  else if(plan.status==="已完成" || plan.status==="部分完成") plan.status="未开始";
 }
 
 function planNet(plan){
@@ -842,9 +959,9 @@ function renderTodayPlan(){
       </div>
       <span class="plan-status">${esc(plan.status||"未开始")}</span>
     </div>
-    <div class="plan-task"><strong>今日计划：</strong>${esc(plan.tasks)}</div>
+    <div class="plan-task"><strong>今日计划：</strong>${renderInteractiveChecklist(plan,plan.date)}</div>
     ${reviewBits.length?`<div class="plan-task" style="margin-top:10px"><strong>今日复盘：</strong>${esc(reviewBits.join("；"))}</div>`:""}
-    <div class="plan-click-hint">点击此卡片进入每日计划与复盘</div>`;
+    <div class="plan-click-hint">可直接勾选任务；点击空白处进入每日计划与复盘</div>`;
 }
 
 function renderTrend(){
@@ -900,7 +1017,10 @@ function renderJourney(){
           </div>
         </div>
         <div class="journey-meta">${esc(plan.status||"未开始")}${pNet!==null?` · 净增 ${signedNum(pNet)}`:""}</div>
-        <div class="journey-text"><span class="journey-plan-label">计划</span>${esc(plan.tasks)}</div>
+        <div class="journey-text">
+          <span class="journey-plan-label">计划</span>
+          ${renderStaticChecklist(plan)}
+        </div>
         ${(plan.endWords!==null && plan.endWords!=="" && plan.endWords!==undefined) || plan.note || plan.tomorrow ? `
           <div class="journey-text" style="margin-top:8px">
             <span class="journey-review-label">复盘</span>
@@ -988,7 +1108,7 @@ function goToPlan(){
   switchTab("plan");
   document.getElementById("pDate").value=todayISO();
   loadPlanForDate(todayISO());
-  setTimeout(()=>document.getElementById("pTasks").focus(),50);
+  setTimeout(()=>document.getElementById("pTaskInput").focus(),50);
 }
 
 function updatePlanNetPreview(){
@@ -1020,56 +1140,228 @@ function renderTomorrowReminder(date){
   }
 }
 
+let autoSaveTimer=null;
+let editorTaskItems=[];
+
+function setAutoSaveStatus(text,type="saved"){
+  const el=document.getElementById("autoSaveStatus");
+  if(!el) return;
+  el.className=`autosave-status ${type}`;
+  el.innerHTML=`<span class="autosave-dot"></span><span>${esc(text)}</span>`;
+}
+function formatSaveTime(){
+  return new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+}
+function renderTaskEditor(plan){
+  editorTaskItems=(plan ? normalizeTaskItems(plan) : []).map(t=>({...t}));
+  const wrap=document.getElementById("pTaskList");
+  if(!wrap) return;
+  if(!editorTaskItems.length){
+    wrap.innerHTML=`<div class="task-empty">还没有任务，在上方输入后点击“添加”</div>`;
+    return;
+  }
+  wrap.innerHTML=editorTaskItems.map((t,i)=>`
+    <div class="task-row ${t.done?"done":""}">
+      <input class="task-check" type="checkbox" ${t.done?"checked":""}
+             onchange="toggleEditorTask(${i},this.checked)">
+      <input class="task-edit-text" type="text" value="${esc(t.text)}"
+             oninput="editPlanTaskText(${i},this.value)">
+      <button class="task-remove" type="button" title="删除此任务"
+              onclick="removePlanTask(${i})">×</button>
+    </div>`).join("");
+}
+function addPlanTask(){
+  const input=document.getElementById("pTaskInput");
+  const text=input.value.trim();
+  if(!text) return;
+  editorTaskItems.push({
+    id:`task_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
+    text,
+    done:false
+  });
+  input.value="";
+  renderTaskEditor({taskItems:editorTaskItems});
+  scheduleAutoSave();
+  input.focus();
+}
+function removePlanTask(index){
+  const task=editorTaskItems[index];
+  if(!task) return;
+  if(confirm(`确定删除任务“${task.text}”吗？`)){
+    editorTaskItems.splice(index,1);
+    renderTaskEditor({taskItems:editorTaskItems});
+    scheduleAutoSave(true);
+  }
+}
+function toggleEditorTask(index,checked){
+  if(!editorTaskItems[index]) return;
+  editorTaskItems[index].done=checked;
+  renderTaskEditor({taskItems:editorTaskItems});
+  scheduleAutoSave(true);
+}
+function editPlanTaskText(index,value){
+  if(!editorTaskItems[index]) return;
+  editorTaskItems[index].text=value;
+  scheduleAutoSave();
+}
+
+function getPreviousDate(date){
+  const d=new Date(date+"T00:00:00");
+  d.setDate(d.getDate()-1);
+  return d.toISOString().slice(0,10);
+}
+function renderTomorrowReminder(date){
+  const wrap=document.getElementById("tomorrowReminder");
+  if(!wrap) return;
+  const prev=getPreviousDate(date);
+  const prevPlan=(data.plans||[]).find(p=>p.date===prev);
+  if(prevPlan && prevPlan.tomorrow){
+    wrap.innerHTML=`<div class="tomorrow-reminder"><strong>昨日留下的明日推进：</strong>${esc(prevPlan.tomorrow)}</div>`;
+  }else{
+    wrap.innerHTML="";
+  }
+}
+function updatePlanNetPreview(){
+  const s=document.getElementById("pStartWords").value;
+  const e=document.getElementById("pEndWords").value;
+  const el=document.getElementById("pNetWords");
+  el.textContent=(s!=="" && e!=="") ? signedNum(Number(e)-Number(s)) : "0";
+}
+
 function loadPlanForDate(date){
   const plan=(data.plans||[]).find(p=>p.date===date);
   if(plan){
     document.getElementById("pSection").value=plan.section;
     document.getElementById("pStartWords").value=plan.startWords??"";
-    document.getElementById("pTasks").value=plan.tasks;
     document.getElementById("pStatus").value=plan.status||"未开始";
     document.getElementById("pEndWords").value=plan.endWords??"";
     document.getElementById("pNote").value=plan.note||"";
     document.getElementById("pTomorrow").value=plan.tomorrow||"";
+    renderTaskEditor(plan);
   }else{
     document.getElementById("pSection").value=SECTION_NAMES[0];
     document.getElementById("pStartWords").value="";
-    document.getElementById("pTasks").value="";
     document.getElementById("pStatus").value="未开始";
     document.getElementById("pEndWords").value="";
     document.getElementById("pNote").value="";
     document.getElementById("pTomorrow").value="";
+    renderTaskEditor(null);
   }
+  document.getElementById("pTaskInput").value="";
   updatePlanNetPreview();
   renderTomorrowReminder(date);
 }
-document.getElementById("pDate").addEventListener("change",e=>loadPlanForDate(e.target.value));
-document.getElementById("pStartWords").addEventListener("input",updatePlanNetPreview);
-document.getElementById("pEndWords").addEventListener("input",updatePlanNetPreview);
 
-document.getElementById("planForm").addEventListener("submit",e=>{
-  e.preventDefault();
+function collectPlanFromForm(){
   const date=document.getElementById("pDate").value;
   const startRaw=document.getElementById("pStartWords").value;
   const endRaw=document.getElementById("pEndWords").value;
+  const old=(data.plans||[]).find(p=>p.date===date);
+
   const plan={
-    id:Date.now(),
+    id:old?.id || Date.now(),
     date,
     section:document.getElementById("pSection").value,
     startWords:startRaw===""?null:Number(startRaw),
-    tasks:document.getElementById("pTasks").value.trim(),
+    taskItems:editorTaskItems
+      .map(t=>({...t,text:String(t.text||"").trim()}))
+      .filter(t=>t.text),
     status:document.getElementById("pStatus").value,
     endWords:endRaw===""?null:Number(endRaw),
     note:document.getElementById("pNote").value.trim(),
     tomorrow:document.getElementById("pTomorrow").value.trim()
   };
-  const idx=(data.plans||[]).findIndex(p=>p.date===date);
-  if(idx>=0){
-    plan.id=data.plans[idx].id||Date.now();
-    data.plans[idx]=plan;
-  }else{
-    data.plans.push(plan);
+  syncPlanTaskText(plan);
+  updatePlanStatusFromTasks(plan);
+  return plan;
+}
+
+function persistCurrentPlan(mode="auto"){
+  try{
+    const plan=collectPlanFromForm();
+    if(!plan.date) return;
+
+    const hasContent=
+      plan.taskItems.length ||
+      plan.startWords!==null ||
+      plan.endWords!==null ||
+      plan.note ||
+      plan.tomorrow ||
+      plan.status!=="未开始";
+
+    if(!hasContent){
+      setAutoSaveStatus("自动保存已开启","saved");
+      return;
+    }
+
+    const idx=(data.plans||[]).findIndex(p=>p.date===plan.date);
+    if(idx>=0) data.plans[idx]=plan;
+    else data.plans.push(plan);
+
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    renderAll();
+    document.getElementById("pStatus").value=plan.status;
+
+    setAutoSaveStatus(
+      mode==="manual" ? `已手动保存 ${formatSaveTime()}` : `已自动保存 ${formatSaveTime()}`,
+      "saved"
+    );
+  }catch(err){
+    console.error(err);
+    setAutoSaveStatus("保存失败","error");
   }
-  save();
+}
+function scheduleAutoSave(immediate=false){
+  clearTimeout(autoSaveTimer);
+  setAutoSaveStatus("正在保存…","saving");
+  if(immediate) persistCurrentPlan("auto");
+  else autoSaveTimer=setTimeout(()=>persistCurrentPlan("auto"),650);
+}
+function toggleDashboardTask(date,taskId,checked){
+  const plan=(data.plans||[]).find(p=>p.date===date);
+  if(!plan) return;
+  plan.taskItems=normalizeTaskItems(plan).map(t=>({...t}));
+  const task=plan.taskItems.find(t=>String(t.id)===String(taskId));
+  if(!task) return;
+
+  task.done=checked;
+  syncPlanTaskText(plan);
+  updatePlanStatusFromTasks(plan);
+
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  renderAll();
+
+  if(document.getElementById("pDate")?.value===date){
+    document.getElementById("pStatus").value=plan.status;
+    renderTaskEditor(plan);
+  }
+}
+
+document.getElementById("pTaskInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){
+    e.preventDefault();
+    addPlanTask();
+  }
+});
+document.getElementById("pDate").addEventListener("change",e=>{
+  clearTimeout(autoSaveTimer);
+  loadPlanForDate(e.target.value);
+  setAutoSaveStatus("自动保存已开启","saved");
+});
+["pSection","pStatus"].forEach(id=>{
+  document.getElementById(id).addEventListener("change",()=>scheduleAutoSave(true));
+});
+["pStartWords","pEndWords","pNote","pTomorrow"].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener("input",()=>{
+    if(id==="pStartWords" || id==="pEndWords") updatePlanNetPreview();
+    scheduleAutoSave();
+  });
+});
+document.getElementById("planForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  clearTimeout(autoSaveTimer);
+  persistCurrentPlan("manual");
 });
 
 function deletePlanForSelectedDate(){
@@ -1083,6 +1375,7 @@ function deletePlanForSelectedDate(){
     data.plans=data.plans.filter(p=>p.date!==date);
     save();
     loadPlanForDate(date);
+    setAutoSaveStatus("自动保存已开启","saved");
   }
 }
 
@@ -1189,7 +1482,7 @@ function exportJourneyCSV(){
     const pNet=planNet(p);
     const pText=p?[
       `重点板块：${p.section}`,
-      `计划：${p.tasks}`,
+      `计划：${normalizeTaskItems(p).map(t=>(t.done?"[已完成] ":"[待完成] ")+t.text).join("；")}`,
       p.startWords!==null && p.startWords!==undefined ? `起始字数：${p.startWords}` : "",
       p.endWords!==null && p.endWords!==undefined ? `日终字数：${p.endWords}` : "",
       pNet!==null ? `净增：${signedNum(pNet)}` : "",
@@ -1242,6 +1535,7 @@ fillSectionSelects();
 document.getElementById("pDate").value=todayISO();
 loadPlanForDate(todayISO());
 renderAll();
+setAutoSaveStatus("自动保存已开启","saved");
 
 const SITE_PASSWORD_HASH = "4c7b7ecb9e72ef50655e7cb570ddce6081117091d4727d2e103466773c30e6a8";
 const SITE_UNLOCK_KEY = "xiaoxu_dissertation_unlocked_v1";
