@@ -1,0 +1,80 @@
+{
+  "sections": [
+    {
+      "name": "摘要",
+      "words": 0,
+      "detail": "",
+      "status": "未开始",
+      "next": ""
+    },
+    {
+      "name": "引言",
+      "words": 0,
+      "detail": "",
+      "status": "未开始",
+      "next": ""
+    },
+    {
+      "name": "文献综述",
+      "words": 0,
+      "detail": "",
+      "status": "未开始",
+      "next": ""
+    },
+    {
+      "name": "问题提出",
+      "words": 0,
+      "detail": "",
+      "status": "未开始",
+      "next": ""
+    },
+    {
+      "name": "研究一",
+      "words": 0,
+      "detail": "",
+      "status": "未开始",
+      "next": ""
+    },
+    {
+      "name": "研究二",
+      "words": 0,
+      "detail": "",
+      "status": "未开始",
+      "next": ""
+    },
+    {
+      "name": "研究三",
+      "words": 0,
+      "detail": "",
+      "status": "未开始",
+      "next": ""
+    },
+    {
+      "name": "研究四",
+      "words": 0,
+      "detail": "",
+      "status": "进行中",
+      "next": ""
+    },
+    {
+      "name": "总讨论",
+      "words": 0,
+      "detail": "",
+      "status": "未开始",
+      "next": ""
+    },
+    {
+      "name": "结论",
+      "words": 0,
+      "detail": "",
+      "status": "未开始",
+      "next": ""
+    }
+  ],
+  "daily": [],
+  "milestones": [],
+  "_backup": {
+    "savedAt": "2026-09-15T05:13:46.026Z",
+    "source": "小许博士论文打卡站"
+  }
+}
