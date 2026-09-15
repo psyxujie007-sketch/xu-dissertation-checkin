@@ -299,6 +299,19 @@
     content:"";position:absolute;width:180px;height:180px;border-radius:50%;
     right:-70px;top:-85px;background:rgba(145,105,175,.10);
   }
+  .today-plan-clickable{
+    cursor:pointer;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .today-plan-clickable:hover{
+    transform:translateY(-2px);
+    border-color:#BFA7D0;
+    box-shadow:0 12px 30px rgba(88,66,108,.13);
+  }
+  .today-plan-clickable:focus-visible{
+    outline:3px solid rgba(138,103,163,.24);
+    outline-offset:3px;
+  }
   .plan-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;position:relative;z-index:1}
   .plan-date{font-size:12px;color:#85728F;font-weight:700;letter-spacing:.03em}
   .plan-focus{font-size:18px;font-weight:800;color:#5B426D;margin-top:5px}
@@ -311,6 +324,11 @@
     display:inline-block;padding:5px 9px;border-radius:999px;
     background:#E7DCF0;color:#6D4D84;font-size:12px;font-weight:800;white-space:nowrap;
   }
+  .plan-click-hint{
+    position:relative;z-index:1;margin-top:14px;padding-top:10px;
+    border-top:1px dashed rgba(109,77,132,.18);
+    font-size:11px;color:#9A8DA1;text-align:right;
+  }
   .journey-table td{white-space:normal;min-width:220px;line-height:1.7}
   .journey-table td:first-child{min-width:145px;width:145px;font-weight:800;color:#5B426D}
   .journey-item{
@@ -321,12 +339,32 @@
   .journey-item-head{
     display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
   }
-  .journey-delete{
-    border:1px solid #E2C7D1;background:#FFF9FB;color:#9A5A72;
-    border-radius:8px;padding:4px 7px;font-size:11px;font-weight:700;
+  .journey-delete-wrap{
+    position:relative;display:flex;align-items:center;gap:6px;min-height:20px;
+  }
+  .journey-delete-dot{
+    width:9px;height:9px;padding:0;border:0;border-radius:50%;
+    background:#D96B7C;cursor:pointer;flex:none;
+    box-shadow:0 0 0 3px rgba(217,107,124,.10);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .journey-delete-dot:hover{
+    transform:scale(1.18);
+    box-shadow:0 0 0 4px rgba(217,107,124,.14);
+  }
+  .journey-delete-action{
+    display:none;border:1px solid #E4BCC7;background:#FFF7F9;color:#9C4F63;
+    border-radius:7px;padding:3px 7px;font-size:10px;font-weight:800;
     cursor:pointer;white-space:nowrap;
   }
-  .journey-delete:hover{background:#FBECEF}
+  .journey-delete-wrap.open .journey-delete-action{
+    display:inline-block;
+    animation:deleteReveal .14s ease-out;
+  }
+  @keyframes deleteReveal{
+    from{opacity:0;transform:translateX(4px)}
+    to{opacity:1;transform:translateX(0)}
+  }
   .journey-section{font-weight:800;color:#665074;margin-bottom:3px}
   .journey-meta{font-size:12px;color:#8B7E92;margin-bottom:3px}
   .journey-text{font-size:13px;color:#4C424F}
@@ -428,12 +466,12 @@
       <div class="card">
         <div class="metric-label">今日净增字数</div>
         <div class="metric-value" id="todayWords">0</div>
-        <div class="metric-note">按当日论文推进自动汇总</div>
+        <div class="metric-note">按每日计划与复盘自动计算</div>
       </div>
       <div class="card">
         <div class="metric-label">近 7 天净增字数</div>
         <div class="metric-value" id="weekWords">0</div>
-        <div class="metric-note">沿用原有写作节奏统计</div>
+        <div class="metric-note">按近 7 天计划与复盘统计</div>
       </div>
       <div class="card">
         <div class="metric-label">最近推进板块</div>
@@ -444,9 +482,11 @@
 
     <div class="section-title">
       <h2>今日计划与复盘</h2>
-      <button class="btn secondary" onclick="goToPlan()">编辑今日计划与复盘</button>
     </div>
-    <div id="todayPlanCard" class="today-plan-card"></div>
+    <div id="todayPlanCard" class="today-plan-card today-plan-clickable"
+         role="button" tabindex="0"
+         onclick="goToPlan()"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToPlan();}"></div>
 
     <div class="section-title">
       <h2>论文板块</h2>
@@ -708,25 +748,22 @@ function planNet(plan){
 }
 
 function getNetForDate(date){
+  // 总览与趋势中的净增字数，只认“每日计划与复盘”的起始字数 / 日终字数。
+  // 论文板块编辑产生的字数变化只进入历程记录，不参与这里的统计。
   const plan=(data.plans||[]).find(p=>p.date===date);
   const pNet=planNet(plan);
-  if(pNet!==null) return pNet;
-
-  const legacy=(data.daily||[]).filter(r=>r.date===date);
-  if(legacy.length) return legacy.reduce((a,b)=>a+Number(b.net||0),0);
-
-  return (data.journey||[]).filter(r=>r.date===date).reduce((a,b)=>a+Number(b.net||0),0);
+  return pNet===null ? 0 : pNet;
 }
 
 function getLatestProgress(){
-  const candidates=[];
-  (data.plans||[]).forEach(p=>{
-    const n=planNet(p);
-    if(p.status!=="未开始" || n!==null || p.note){
-      candidates.push({date:p.date,id:Number(p.id||0),section:p.section||"未指定"});
-    }
-  });
-  getProgressRecords().forEach(r=>candidates.push({date:r.date,id:r.id,section:r.section}));
+  // “最近推进板块”只看每日计划与复盘，避免一次板块编辑把它误判为最新推进。
+  const candidates=(data.plans||[])
+    .filter(p=>p && p.date)
+    .map(p=>({
+      date:p.date,
+      id:Number(p.id||0),
+      section:p.section||"未指定"
+    }));
   candidates.sort((a,b)=>b.date.localeCompare(a.date)||Number(b.id)-Number(a.id));
   return candidates[0]||null;
 }
@@ -787,7 +824,8 @@ function renderTodayPlan(){
         </div>
         <span class="plan-status">待安排</span>
       </div>
-      <div class="plan-task plan-empty">去“每日计划与复盘”写下今天要做什么。晚上再补上日终字数、今日随记和明日推进。</div>`;
+      <div class="plan-task plan-empty">去“每日计划与复盘”写下今天要做什么。晚上再补上日终字数、今日随记和明日推进。</div>
+      <div class="plan-click-hint">点击此卡片进入每日计划与复盘</div>`;
     return;
   }
   const n=planNet(plan);
@@ -805,7 +843,8 @@ function renderTodayPlan(){
       <span class="plan-status">${esc(plan.status||"未开始")}</span>
     </div>
     <div class="plan-task"><strong>今日计划：</strong>${esc(plan.tasks)}</div>
-    ${reviewBits.length?`<div class="plan-task" style="margin-top:10px"><strong>今日复盘：</strong>${esc(reviewBits.join("；"))}</div>`:""}`;
+    ${reviewBits.length?`<div class="plan-task" style="margin-top:10px"><strong>今日复盘：</strong>${esc(reviewBits.join("；"))}</div>`:""}
+    <div class="plan-click-hint">点击此卡片进入每日计划与复盘</div>`;
 }
 
 function renderTrend(){
@@ -853,7 +892,12 @@ function renderJourney(){
       <div class="journey-item">
         <div class="journey-item-head">
           <div class="journey-section">${esc(plan.section)}</div>
-          <button class="journey-delete" onclick="deleteJourneyPlan('${esc(date)}')">删除</button>
+          <div class="journey-delete-wrap">
+            <button class="journey-delete-dot" title="删除选项" aria-label="显示删除"
+                    onclick="toggleJourneyDelete(event,this)"></button>
+            <button class="journey-delete-action"
+                    onclick="event.stopPropagation();deleteJourneyPlan('${esc(date)}')">删除</button>
+          </div>
         </div>
         <div class="journey-meta">${esc(plan.status||"未开始")}${pNet!==null?` · 净增 ${signedNum(pNet)}`:""}</div>
         <div class="journey-text"><span class="journey-plan-label">计划</span>${esc(plan.tasks)}</div>
@@ -870,7 +914,12 @@ function renderJourney(){
       <div class="journey-item">
         <div class="journey-item-head">
           <div class="journey-section">${esc(r.section)}</div>
-          <button class="journey-delete" onclick="deleteJourneyProgress('${esc(r.source)}',${Number(r.id)})">删除</button>
+          <div class="journey-delete-wrap">
+            <button class="journey-delete-dot" title="删除选项" aria-label="显示删除"
+                    onclick="toggleJourneyDelete(event,this)"></button>
+            <button class="journey-delete-action"
+                    onclick="event.stopPropagation();deleteJourneyProgress('${esc(r.source)}',${Number(r.id)})">删除</button>
+          </div>
         </div>
         ${r.net!==0?`<div class="journey-meta">字数变化 ${signedNum(r.net)}</div>`:""}
         <div class="journey-text">${esc(r.text)}</div>
@@ -889,6 +938,18 @@ function renderAll(){
   renderJourney();
 }
 
+
+function toggleJourneyDelete(event,btn){
+  event.stopPropagation();
+  const wrap=btn.closest(".journey-delete-wrap");
+  const wasOpen=wrap.classList.contains("open");
+  document.querySelectorAll(".journey-delete-wrap.open").forEach(x=>x.classList.remove("open"));
+  if(!wasOpen) wrap.classList.add("open");
+}
+
+document.addEventListener("click",()=>{
+  document.querySelectorAll(".journey-delete-wrap.open").forEach(x=>x.classList.remove("open"));
+});
 
 function deleteJourneyPlan(date){
   const plan=(data.plans||[]).find(p=>p.date===date);
