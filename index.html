@@ -122,6 +122,16 @@
     background:var(--section-bg,#fff);border:1px solid var(--section-border,var(--line));border-radius:12px;padding:15px;
     position:relative;box-shadow:0 4px 12px rgba(60,64,67,.05);
     border-left:6px solid var(--section-accent,#8A969B);
+    cursor:pointer;
+    transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+  }
+  .section-card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 9px 22px rgba(60,64,67,.10);
+  }
+  .section-card:focus-visible{
+    outline:3px solid rgba(138,103,163,.20);
+    outline-offset:3px;
   }
   .section-card h3{color:var(--section-accent,#27333A)!important}
   .section-card .status{
@@ -537,7 +547,6 @@
 
     <div class="section-title">
       <h2>论文板块</h2>
-      <button class="btn" onclick="openSectionModal()">编辑板块状态</button>
     </div>
     <div class="section-cards" id="sectionCards"></div>
 
@@ -668,22 +677,31 @@
 <div class="modal" id="sectionModal">
   <div class="modalbox">
     <div class="modalhead">
-      <h3>编辑论文板块状态</h3>
+      <h3>论文板块</h3>
       <button class="close" onclick="closeSectionModal()">×</button>
     </div>
     <form id="sectionForm">
       <div class="form-grid">
-        <div><label>论文板块</label><select id="sName"></select></div>
-        <div><label>当前字数</label><input type="number" min="0" id="sWords"></div>
-        <div><label>当前状态</label>
+        <div>
+          <label>论文板块</label>
+          <select id="sName"></select>
+        </div>
+        <div>
+          <label>当前字数</label>
+          <input type="number" min="0" id="sWords">
+        </div>
+        <div>
+          <label>当前状态</label>
           <select id="sStatus">
-            <option>未开始</option><option>进行中</option><option>初稿完成</option>
-            <option>修改中</option><option>待反馈</option><option>已完成</option>
+            <option>未开始</option>
+            <option>进行中</option>
+            <option>初稿完成</option>
+            <option>修改中</option>
+            <option>待反馈</option>
+            <option>已完成</option>
           </select>
         </div>
         <div></div>
-        <div class="span2"><label>当前完成情况（文字记录）</label><textarea id="sDetail" placeholder="例如：结果部分完成，讨论尚未写"></textarea></div>
-        <div class="span2"><label>下一步</label><textarea id="sNext" placeholder="例如：补充理论依据并完成讨论初稿"></textarea></div>
       </div>
       <div class="form-actions">
         <button type="button" class="btn ghost" onclick="closeSectionModal()">取消</button>
@@ -914,15 +932,15 @@ function renderDashboard(){
   renderTodayPlan();
 
   document.getElementById("sectionCards").innerHTML=data.sections.map((s,i)=>`
-    <div class="section-card section-${i}">
+    <div class="section-card section-${i}"
+         role="button" tabindex="0"
+         onclick="editSection('${esc(s.name)}')"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();editSection('${esc(s.name)}');}">
       <div class="section-meta">
         <h3>${esc(s.name)}</h3>
         ${statusBadge(s.status)}
       </div>
-      <div class="hint" style="margin-bottom:6px">当前字数：<strong style="color:var(--navy)">${num(s.words)}</strong></div>
-      <div class="section-text"><strong>当前完成情况：</strong>${s.detail?esc(s.detail):'<span class="empty">尚未记录</span>'}</div>
-      <div class="section-text" style="margin-top:7px"><strong>下一步：</strong>${s.next?esc(s.next):'<span class="empty">尚未记录</span>'}</div>
-      <div style="margin-top:10px"><button class="btn secondary smallbtn" onclick="editSection('${esc(s.name)}')">编辑</button></div>
+      <div class="hint">当前字数：<strong style="color:var(--navy);font-size:16px">${num(s.words)}</strong></div>
     </div>`).join("");
 
   renderTrend();
@@ -1394,8 +1412,6 @@ function loadSectionForm(name){
   document.getElementById("sName").value=s.name;
   document.getElementById("sWords").value=s.words||0;
   document.getElementById("sStatus").value=s.status||"未开始";
-  document.getElementById("sDetail").value=s.detail||"";
-  document.getElementById("sNext").value=s.next||"";
 }
 document.getElementById("sName").addEventListener("change",e=>loadSectionForm(e.target.value));
 
@@ -1403,38 +1419,24 @@ document.getElementById("sectionForm").addEventListener("submit",e=>{
   e.preventDefault();
   const name=document.getElementById("sName").value;
   const s=data.sections.find(x=>x.name===name);
-  const old={
-    words:Number(s.words||0),
-    status:s.status||"未开始",
-    detail:s.detail||"",
-    next:s.next||""
-  };
-  const updated={
-    words:Number(document.getElementById("sWords").value||0),
-    status:document.getElementById("sStatus").value,
-    detail:document.getElementById("sDetail").value.trim(),
-    next:document.getElementById("sNext").value.trim()
-  };
+
+  const oldWords=Number(s.words||0);
+  const oldStatus=s.status||"未开始";
+  const newWords=Number(document.getElementById("sWords").value||0);
+  const newStatus=document.getElementById("sStatus").value;
 
   const changes=[];
-  const net=updated.words-old.words;
-  if(updated.words!==old.words) changes.push(`当前字数 ${num(old.words)} → ${num(updated.words)}（${signedNum(net)}）`);
-  if(updated.status!==old.status) changes.push(`状态「${old.status}」→「${updated.status}」`);
-  if(updated.detail!==old.detail){
-    if(old.detail && updated.detail) changes.push(`完成情况「${old.detail}」→「${updated.detail}」`);
-    else if(updated.detail) changes.push(`完成情况更新为「${updated.detail}」`);
-    else changes.push("清空了当前完成情况");
+  const net=newWords-oldWords;
+
+  if(newWords!==oldWords){
+    changes.push(`当前字数 ${num(oldWords)} → ${num(newWords)}（${signedNum(net)}）`);
   }
-  if(updated.next!==old.next){
-    if(old.next && updated.next) changes.push(`下一步「${old.next}」→「${updated.next}」`);
-    else if(updated.next) changes.push(`下一步更新为「${updated.next}」`);
-    else changes.push("清空了下一步");
+  if(newStatus!==oldStatus){
+    changes.push(`状态「${oldStatus}」→「${newStatus}」`);
   }
 
-  s.words=updated.words;
-  s.status=updated.status;
-  s.detail=updated.detail;
-  s.next=updated.next;
+  s.words=newWords;
+  s.status=newStatus;
 
   if(changes.length){
     if(!Array.isArray(data.journey)) data.journey=[];
@@ -1442,8 +1444,8 @@ document.getElementById("sectionForm").addEventListener("submit",e=>{
       id:Date.now(),
       date:todayISO(),
       section:name,
-      start:old.words,
-      end:updated.words,
+      start:oldWords,
+      end:newWords,
       net,
       text:changes.join("；")
     });
