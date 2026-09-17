@@ -687,7 +687,7 @@
           <select id="sName"></select>
         </div>
         <div>
-          <label>当前字数（自动累计，可手动校正）</label>
+          <label>当前字数（历史净增自动汇总，可手动校正）</label>
           <input type="number" min="0" id="sWords">
         </div>
         <div>
@@ -723,7 +723,7 @@ function todayISO(){
 }
 function defaultData(){
   return {
-    sections: SECTION_NAMES.map(name=>({name,words:0,detail:"",status:"未开始",next:""})),
+    sections: SECTION_NAMES.map(name=>({name,words:0,baseWords:0,detail:"",status:"未开始",next:""})),
     daily:[],
     milestones:[],
     plans:[],
@@ -767,7 +767,7 @@ function loadData(){
     if(!Array.isArray(parsed.journey)) parsed.journey=[];
     SECTION_NAMES.forEach(n=>{
       if(!parsed.sections.find(s=>s.name===n)){
-        parsed.sections.push({name:n,words:0,detail:"",status:"未开始",next:""});
+        parsed.sections.push({name:n,words:0,baseWords:0,detail:"",status:"未开始",next:""});
       }
     });
     parsed.sections=SECTION_NAMES.map(n=>parsed.sections.find(s=>s.name===n));
@@ -951,7 +951,7 @@ function renderDashboard(){
         ${statusBadge(s.status)}
       </div>
       <div class="hint">当前字数：<strong style="color:var(--navy);font-size:16px">${num(s.words)}</strong></div>
-      <div class="hint" style="margin-top:5px;opacity:.72">由每日计划与复盘的净增自动累计</div>
+      <div class="hint" style="margin-top:5px;opacity:.72">由全部每日计划与复盘按板块自动汇总</div>
     </div>`).join("");
 
   renderTrend();
@@ -1104,8 +1104,8 @@ function deleteJourneyPlan(date){
   const plan=(data.plans||[]).find(p=>p.date===date);
   if(!plan) return;
   if(confirm(`确定删除 ${date} 的这条每日计划记录吗？`)){
-    reversePlanNetFromSection(plan);
     data.plans=data.plans.filter(p=>p.date!==date);
+    recomputeAllSectionWords();
     save();
     if(document.getElementById("pDate").value===date){
       loadPlanForDate(date);
@@ -1283,53 +1283,48 @@ function loadPlanForDate(date){
 }
 
 
-function syncPlanNetToSection(oldPlan,newPlan){
-  // 上一次已经计入论文板块的净增及板块
-  const oldAppliedNet =
-    oldPlan && oldPlan.appliedNet!==null && oldPlan.appliedNet!==undefined
-      ? Number(oldPlan.appliedNet||0)
-      : 0;
-  const oldAppliedSection =
-    oldPlan && oldPlan.appliedSection
-      ? oldPlan.appliedSection
-      : null;
-
-  const rawNet=planNet(newPlan);
-  const newNet=rawNet===null ? 0 : Number(rawNet);
-  const newSection=newPlan.section || null;
-
-  // 如果此前已经记到另一个板块，先完整撤回。
-  if(oldAppliedSection && oldAppliedSection!==newSection){
-    const oldTarget=data.sections.find(s=>s.name===oldAppliedSection);
-    if(oldTarget){
-      oldTarget.words=Math.max(0,Number(oldTarget.words||0)-oldAppliedNet);
-    }
-
-    const newTarget=data.sections.find(s=>s.name===newSection);
-    if(newTarget && newNet!==0){
-      newTarget.words=Math.max(0,Number(newTarget.words||0)+newNet);
-    }
-  }else{
-    // 同一个板块只应用差额，防止自动保存反复累计。
-    const delta=newNet-oldAppliedNet;
-    const target=data.sections.find(s=>s.name===newSection);
-    if(target && delta!==0){
-      target.words=Math.max(0,Number(target.words||0)+delta);
-    }
-  }
-
-  newPlan.appliedSection=newSection;
-  newPlan.appliedNet=newNet;
+function historicalNetForSection(sectionName){
+  return (data.plans||[])
+    .filter(p=>p && p.section===sectionName)
+    .reduce((sum,p)=>{
+      const n=planNet(p);
+      return sum+(n===null?0:Number(n||0));
+    },0);
 }
 
-function reversePlanNetFromSection(plan){
-  if(!plan || !plan.appliedSection ||
-     plan.appliedNet===null || plan.appliedNet===undefined) return;
+function recomputeAllSectionWords(){
+  // 每次从全部“每日计划与复盘”重算，避免重复累计、漏算或改板块后残留。
+  data.sections.forEach(s=>{
+    const base=Number(s.baseWords||0);
+    const autoNet=historicalNetForSection(s.name);
+    s.words=Math.max(0,base+autoNet);
+  });
+}
 
-  const target=data.sections.find(s=>s.name===plan.appliedSection);
-  if(target){
-    target.words=Math.max(0,Number(target.words||0)-Number(plan.appliedNet||0));
+function initializeSectionAccountingV2(){
+  // 只迁移一次：先扣掉旧版已经自动累计的 appliedNet，得到基准字数，
+  // 再把所有历史“每日计划与复盘”的净增按板块完整汇总回来。
+  if(data.sectionAccountingVersion===2){
+    data.sections.forEach(s=>{
+      if(s.baseWords===null || s.baseWords===undefined){
+        s.baseWords=Number(s.words||0)-historicalNetForSection(s.name);
+      }
+    });
+    recomputeAllSectionWords();
+    return;
   }
+
+  data.sections.forEach(s=>{
+    const oldApplied=(data.plans||[])
+      .filter(p=>p && p.appliedSection===s.name &&
+                 p.appliedNet!==null && p.appliedNet!==undefined)
+      .reduce((sum,p)=>sum+Number(p.appliedNet||0),0);
+    s.baseWords=Number(s.words||0)-oldApplied;
+  });
+
+  data.sectionAccountingVersion=2;
+  recomputeAllSectionWords();
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
 }
 
 function collectPlanFromForm(){
@@ -1377,13 +1372,11 @@ function persistCurrentPlan(mode="auto"){
     }
 
     const idx=(data.plans||[]).findIndex(p=>p.date===plan.date);
-    const oldPlan=idx>=0 ? data.plans[idx] : null;
-
-    syncPlanNetToSection(oldPlan,plan);
 
     if(idx>=0) data.plans[idx]=plan;
     else data.plans.push(plan);
 
+    recomputeAllSectionWords();
     localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
     renderAll();
     document.getElementById("pStatus").value=plan.status;
@@ -1458,9 +1451,8 @@ function deletePlanForSelectedDate(){
     return;
   }
   if(confirm(`确定删除 ${date} 的每日计划吗？`)){
-    const oldPlan=(data.plans||[]).find(p=>p.date===date);
-    reversePlanNetFromSection(oldPlan);
     data.plans=data.plans.filter(p=>p.date!==date);
+    recomputeAllSectionWords();
     save();
     loadPlanForDate(date);
     setAutoSaveStatus("自动保存已开启","saved");
@@ -1496,17 +1488,19 @@ document.getElementById("sectionForm").addEventListener("submit",e=>{
   const newStatus=document.getElementById("sStatus").value;
 
   const changes=[];
-  const net=newWords-oldWords;
+  const manualDelta=newWords-oldWords;
 
   if(newWords!==oldWords){
-    changes.push(`当前字数 ${num(oldWords)} → ${num(newWords)}（${signedNum(net)}）`);
+    const autoNet=historicalNetForSection(name);
+    s.baseWords=newWords-autoNet;
+    changes.push(`当前字数校准 ${num(oldWords)} → ${num(newWords)}（${signedNum(manualDelta)}）`);
   }
   if(newStatus!==oldStatus){
     changes.push(`状态「${oldStatus}」→「${newStatus}」`);
   }
 
-  s.words=newWords;
   s.status=newStatus;
+  recomputeAllSectionWords();
 
   if(changes.length){
     if(!Array.isArray(data.journey)) data.journey=[];
@@ -1515,8 +1509,8 @@ document.getElementById("sectionForm").addEventListener("submit",e=>{
       date:todayISO(),
       section:name,
       start:oldWords,
-      end:newWords,
-      net,
+      end:Number(s.words||0),
+      net:manualDelta,
       text:changes.join("；")
     });
   }
@@ -1604,6 +1598,7 @@ function clearAllData(){
 }
 
 fillSectionSelects();
+initializeSectionAccountingV2();
 document.getElementById("pDate").value=todayISO();
 loadPlanForDate(todayISO());
 renderAll();
